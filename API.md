@@ -78,8 +78,22 @@ Kernel APIs implemented as capability invocations:
 ## TODO
 
 Do we need any extra kernel entities like Events/Notifications for e.g. fbufs? - in Nemesis sending an Event is the only IPC method available - arguments and results are marshalled in the IPC shared memory area.
+ * this is reasonable because of SAS; however, small-IPC is more efficient using registers, so should be primary - shared-buffer IPC can be implemented using those (e.g. by passing IPC buffer locations in registers).
+
+- it seems that additional services can be expressed in terms of "call on capability" minimal substrate by the OS. Events, upcalls etc could be implemented like this?
 
 Thread migration - the threads are not migrating per se, the capabilities ensure that "migration" is transparent.
+
+Nemesis concepts:
+* Upcalls/activations
+* Events/sequencers
+
+ntsc_rfa, ntsc_rfa_resume, ntsc_rfa_block, ntsc_block, ntsc_yield, ntsc_send
+
+* activations - a scheduler concept, scheduler uses a single entry point to upcall the process. if the scheduler is an userspace entity, it could emulate this behavior.
+* need to define scheduling mechanisms using userspace scheduler.
+  - timer interrupt in kernel causes _immediate_ reschedule - the scheduler should have highest priority.
+  -
 
 ### Send
 
@@ -142,8 +156,7 @@ Perform a reply followed by a receive in one system call
 
 ### NBRecv
 
-Receive a message from an endpoint but do not block
-in the case that no messages are pending
+Receive a message from an endpoint but do not block in the case that no messages are pending
 
  * @param[in] src The capability to be invoked.
  * @param[out] sender The address to write sender information to.
@@ -158,7 +171,7 @@ in the case that no messages are pending
 ### Yield
 
 Donate the remaining timeslice to a thread of the same priority
- 
+
 ### (VMEnter)
 
 static inline seL4_Word
