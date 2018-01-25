@@ -1,8 +1,7 @@
-#[no_std]
+#![no_std]
+#![feature(asm)]
+#![doc(html_root_url = "https://doc.metta.systems/")]
 
-#[feature(asm)]
-
-#[doc(html_root_url = "https://doc.metta.systems/")]
 
 #[cfg(not(any(all(target_arch = "arm", target_pointer_width = "32"),
                   all(target_arch = "x86"), all(target_arch = "x86_64"))))]
