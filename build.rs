@@ -51,7 +51,13 @@ fn main() {
         println!("cargo:rustc-link-lib=static=arm");
         println!("cargo:rerun-if-changed=src/boot/arm.s");
     } else if target == "aarch64-vesper-metta" {
-        println!("cargo:rustc-link-lib=static=aarch64");
+        // File::create(out_dir.join("link.ld")).unwrap()
+            // .write_all(include_bytes!("linker/aarch64.ld")).unwrap();
+        // println!("cargo:rustc-link-search={}", out_dir.display());
+        // println!("cargo:rustc-env=RUSTFLAGS='-Clink-arg=-T{} -Zthinlto=no'",
+            // out_dir.join("link.ld").display());
+        // println!("cargo:rustc-link-lib=static=aarch64");
+        println!("cargo:rerun-if-changed=linker/aarch64.ld");
         println!("cargo:rerun-if-changed=src/boot/aarch64.s");
     } else {
         panic!("TARGET env variable is not set to one of supported values");
