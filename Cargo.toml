@@ -13,10 +13,10 @@ categories = ["no-std"]
 [features]
 unstable = []
 
-[lib]
-name = "nucleus"
-path = "src/lib.rs"
-crate-type = ["staticlib"]
+#[lib]
+#name = "nucleus"
+#path = "src/lib.rs"
+#crate-type = ["staticlib"]
 
 [build-dependencies]
 maplit = "0.1.3"
