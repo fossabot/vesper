@@ -1,9 +1,10 @@
 {
-    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
-    "llvm-target": "aarch64-elf",
+    "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
+    "llvm-target": "aarch64-unknown-linux-gnu",
     "target-endian": "little",
     "target-pointer-width": "64",
     "target-c-int-width": "32",
+    "max-atomic-width": 128,
     "os": "vesper",
     "env": "metta",
     "arch": "aarch64",
@@ -11,13 +12,14 @@
     "executables": true,
     "linker": "aarch64-unknown-linux-gnu-gcc",
     "ar": "aarch64-unknown-linux-gnu-ar",
+    "has-rpath": true,
     "position-independent-executables": true,
+    "relro-level": "full",
     "has-elf-tls": true,
     "panic-strategy": "abort",
     "no-default-libraries": true,
     "linker-flavor": "gcc",
     "pre-link-args": {
-        "gcc": ["-m64", "-ffreestanding", "-nodefaultlibs", "-nostdlib"]
-    },
-    "default-codegen-units": 1
+        "gcc": ["-ffreestanding", "-nodefaultlibs", "-nostdlib"]
+    }
 }

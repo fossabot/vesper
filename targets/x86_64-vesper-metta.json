@@ -7,6 +7,7 @@
     "os": "vesper",
     "env": "metta",
     "arch": "x86_64",
+    "cpu": "x86-64",
     "linker-is-gnu": true,
     "executables": true,
     "no-compiler-rt": false,
@@ -15,7 +16,7 @@
     "dynamic_linking": false,
     "has-elf-tls": true,
     "panic-strategy": "abort",
-    "cpu": "westmere",
+    "disable-redzone": true,
     "no-default-libraries": true,
     "linker-flavor": "gcc",
     "pre-link-args": {
