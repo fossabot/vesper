@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(asm)]
+#![feature(lang_items)]
 #![doc(html_root_url = "https://doc.metta.systems/")]
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
@@ -9,6 +10,9 @@ use architecture_not_supported_sorry;
 #[macro_use]
 pub mod arch;
 pub use arch::*;
+
+#[lang = "panic_fmt"]
+extern fn panic_fmt() {}
 
 // Kernel entry point
 // arch crate is responsible for calling this
