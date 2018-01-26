@@ -15,6 +15,7 @@
     "ar": "aarch64-unknown-linux-musl-ar",
     "has-rpath": true,
     "position-independent-executables": true,
+    "dynamic_linking": false,
     "relro-level": "full",
     "has-elf-tls": true,
     "panic-strategy": "abort",
@@ -22,5 +23,6 @@
     "no-default-libraries": true,
     "pre-link-args": {
         "gcc": ["-ffreestanding", "-nodefaultlibs", "-nostdlib"]
-    }
+    },
+    "default-codegen-units": 1
 }
