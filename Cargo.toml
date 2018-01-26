@@ -7,3 +7,13 @@ documentation = "https://doc.metta.systems/vesper"
 repository = "https://gitlab.com/metta-systems/vesper"
 readme = "README.md"
 license = "BSL-1.0"
+build = "build.rs"
+
+[features]
+unstable = []
+
+[lib]
+path = "src/lib.rs"
+
+[build-dependencies]
+maplit = "0.1.3"
