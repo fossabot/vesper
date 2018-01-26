@@ -3,14 +3,18 @@
 #[macro_use] extern crate maplit;
 
 use std::process::Command;
+use std::path::PathBuf;
+// use std::io::Write;
+// use std::fs::File;
 use std::env;
 
 fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
+    let out_dir = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    // Todo: not portable, use Path::mkdir()
     assert!(Command::new("/usr/bin/env")
         .arg("mkdir")
         .arg("-p")
-        .arg(&*format!("{}/src/boot", out_dir))
+        .arg(&*format!("{}/src/boot", out_dir.display()))
         .status().unwrap().success());
 
     let arch_to_target = hashmap! {
@@ -20,21 +24,22 @@ fn main() {
         "aarch64" => "aarch64-unknown-linux-gnu",
     };
     for (arch, llvmtriple) in &arch_to_target {
+        // Todo: use gcc/clang crate for this?
         assert!(Command::new("/usr/bin/env")
             .arg("clang")
             .arg("-fPIC")
             .arg(&*format!("src/boot/{}.s", arch))
-            .args(&["-c", "-target", llvmtriple, "-o", &*format!("{}/src/boot/{}.o", out_dir, arch)])
+            .args(&["-c", "-target", llvmtriple, "-o", &*format!("{}/src/boot/{}.o", out_dir.display(), arch)])
             .status().unwrap().success());
         assert!(Command::new("/usr/bin/env")
             .arg("ar")
             .arg("crus")
-            .arg(format!("{}/src/boot/lib{}.a", out_dir,arch))
-            .arg(&*format!("{}/src/boot/{}.o", out_dir, arch))
+            .arg(format!("{}/src/boot/lib{}.a", out_dir.display(), arch))
+            .arg(&*format!("{}/src/boot/{}.o", out_dir.display(), arch))
             .status().unwrap().success());
     }
 
-    println!("cargo:rustc-link-search=native={}/src/boot", out_dir);
+    println!("cargo:rustc-link-search=native={}/src/boot", out_dir.display());
     let target = env::var("TARGET").unwrap();
     if target == "i686-vesper-metta" {
         println!("cargo:rustc-link-lib=static=x86");
