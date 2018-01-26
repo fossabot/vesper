@@ -10,7 +10,8 @@
     "arch": "aarch64",
     "linker-is-gnu": true,
     "executables": true,
-    "linker": "aarch64-unknown-linux-musl-gcc",
+    "linker-flavor": "ld",
+    "linker": "ld.lld",
     "ar": "aarch64-unknown-linux-musl-ar",
     "has-rpath": true,
     "position-independent-executables": true,
@@ -19,7 +20,6 @@
     "panic-strategy": "abort",
     "no-compiler-rt": true,
     "no-default-libraries": true,
-    "linker-flavor": "gcc",
     "pre-link-args": {
         "gcc": ["-ffreestanding", "-nodefaultlibs", "-nostdlib"]
     }
