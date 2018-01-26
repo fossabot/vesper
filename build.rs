@@ -38,12 +38,16 @@ fn main() {
     let target = env::var("TARGET").unwrap();
     if target == "i686-vesper-metta" {
         println!("cargo:rustc-link-lib=static=x86");
+        println!("cargo:rerun-if-changed=src/boot/x86.s");
     } else if target == "x86_64-vesper-metta" {
         println!("cargo:rustc-link-lib=static=x86_64");
+        println!("cargo:rerun-if-changed=src/boot/x86_64.s");
     } else if target == "arm-vesper-metta" {
         println!("cargo:rustc-link-lib=static=arm");
+        println!("cargo:rerun-if-changed=src/boot/arm.s");
     } else if target == "aarch64-vesper-metta" {
         println!("cargo:rustc-link-lib=static=aarch64");
+        println!("cargo:rerun-if-changed=src/boot/aarch64.s");
     } else {
         panic!("TARGET env variable is not set to one of supported values");
     }
