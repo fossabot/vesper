@@ -5,11 +5,16 @@
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 use architecture_not_supported_sorry;
 
-#[cfg(target_arch = "x86_64")]
-include!("arch/x86_64.rs");
+/// Architecture-dependent stuff
+#[macro_use]
+pub mod arch;
+pub use arch::*;
 
-#[cfg(target_arch = "aarch64")]
-include!("arch/aarch64.rs");
+// Kernel entry point
+// arch crate is responsible for calling this
+pub fn kmain() -> ! {
+    loop {}
+}
 
 // User-facing kernel parts - syscalls and capability invocations.
 // pub mod vesper; -- no mod exported, because available through syscall interface
