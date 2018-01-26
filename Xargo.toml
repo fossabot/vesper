@@ -1,2 +1,2 @@
-[target.aarch64-unknown-linux-gnu.dependencies]
+[target.aarch64-vesper-metta.dependencies]
 alloc = {}
