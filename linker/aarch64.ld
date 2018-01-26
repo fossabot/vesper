@@ -2,7 +2,7 @@ ENTRY(kstart)
 OUTPUT_ARCH(aarch64)
 OUTPUT_FORMAT(elf64-aarch64) # Should be binary really
 
-START_ADDRESS = 0x100000;
+START_ADDRESS = 0x8000;
 
 SECTIONS {
     . = START_ADDRESS;
