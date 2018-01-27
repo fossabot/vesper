@@ -1,28 +1,52 @@
 {
-    "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
-    "llvm-target": "aarch64-unknown-linux-musl",
-    "target-endian": "little",
-    "target-pointer-width": "64",
-    "target-c-int-width": "32",
-    "max-atomic-width": 128,
-    "os": "vesper",
-    "env": "metta",
-    "arch": "aarch64",
-    "linker-is-gnu": true,
-    "executables": true,
-    "linker-flavor": "ld",
-    "linker": "ld.lld",
-    "ar": "aarch64-unknown-linux-musl-ar",
-    "has-rpath": true,
-    "position-independent-executables": true,
-    "dynamic_linking": false,
-    "relro-level": "full",
-    "has-elf-tls": true,
-    "panic-strategy": "abort",
-    "no-compiler-rt": true,
-    "no-default-libraries": true,
-    "pre-link-args": {
-        "gcc": ["-ffreestanding", "-nodefaultlibs", "-nostdlib"]
-    },
-    "default-codegen-units": 1
+  "abi-blacklist": [
+    "stdcall",
+    "fastcall",
+    "vectorcall",
+    "thiscall",
+    "win64",
+    "sysv64"
+  ],
+  "arch": "aarch64",
+  "crt-static-default": true,
+  "crt-static-respected": true,
+  "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
+  "dynamic-linking": true,
+  "env": "metta",
+  "executables": true,
+  "has-elf-tls": true,
+  "has-rpath": true,
+  "linker-flavor": "ld",
+  "linker-is-gnu": true,
+  "llvm-target": "aarch64-unknown-linux-musl",
+  "max-atomic-width": 128,
+  "os": "vesper",
+  "position-independent-executables": true,
+  "post-link-args": {
+    "gcc": [
+      "-Wl,-)"
+    ]
+  },
+  "post-link-objects": [
+    "crtn.o"
+  ],
+  "pre-link-args": {
+    "gcc": [
+      "-Wl,--as-needed",
+      "-Wl,-z,noexecstack",
+      "-nostdlib",
+      "-Wl,--eh-frame-hdr",
+      "-Wl,-("
+    ]
+  },
+  "pre-link-objects-exe": [
+    "crt1.o",
+    "crti.o"
+  ],
+  "relro-level": "full",
+  "target-c-int-width": "32",
+  "target-endian": "little",
+  "target-family": "metta",
+  "target-pointer-width": "64",
+  "vendor": ""
 }
