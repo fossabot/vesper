@@ -21,6 +21,7 @@
   "llvm-target": "aarch64-unknown-linux-musl",
   "max-atomic-width": 128,
   "os": "vesper",
+  "panic-strategy": "abort",
   "position-independent-executables": true,
   "post-link-args": {
     "gcc": [
