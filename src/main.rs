@@ -18,8 +18,15 @@ pub use arch::*;
 // Actual interfaces to call these syscalls are in vesper-user (similar to libsel4)
 // pub mod vesper; -- exported from vesper-user
 
+#[lang = "eh_personality"]
+#[no_mangle]
+pub extern fn eh_personality() {}
+
 #[lang = "panic_fmt"]
-extern fn panic_fmt() {}
+#[no_mangle]
+pub extern fn panic_fmt() -> ! {
+    loop {}
+}
 
 // Kernel entry point
 // arch crate is responsible for calling this
