@@ -27,9 +27,6 @@
       "-Wl,-)"
     ]
   },
-  "post-link-objects": [
-    "crtn.o"
-  ],
   "pre-link-args": {
     "gcc": [
       "-Wl,--as-needed",
@@ -39,10 +36,6 @@
       "-Wl,-("
     ]
   },
-  "pre-link-objects-exe": [
-    "crt1.o",
-    "crti.o"
-  ],
   "relro-level": "full",
   "target-c-int-width": "32",
   "target-endian": "little",
