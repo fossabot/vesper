@@ -1,18 +1,16 @@
-ENTRY(kstart)
+ENTRY(_start)
 OUTPUT_ARCH(aarch64)
-#OUTPUT_FORMAT(elf64-aarch64) # Should be binary really
+/*OUTPUT_FORMAT(binary) Cannot change output format whilst linking AArch64 binaries.*/
 
 START_ADDRESS = 0x8000;
 
 SECTIONS {
-    . = START_ADDRESS;
-
-    .text ALIGN (4) : {
-        aarch64.o(*) # Vectors and entry point
+    .text START_ADDRESS : AT(START_ADDRESS) {
+        *(.entry)
         *(.text*)
     }
 
-    .rodate ALIGN (4) : {
+    .rodata ALIGN (4) : {
         *(.rodata*)
         FILL(0x00)
     }
