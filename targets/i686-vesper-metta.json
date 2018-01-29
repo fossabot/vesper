@@ -12,7 +12,7 @@
     "no-compiler-rt": false,
     "relocation-model": "pic",
     "position-independent-executables": false,
-    "dynamic_linking": false,
+    "dynamic-linking": false,
     "has-elf-tls": true,
     "panic-strategy": "abort",
     "no-default-libraries": true,

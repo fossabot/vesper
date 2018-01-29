@@ -51,14 +51,15 @@ fn main() {
         println!("cargo:rustc-link-lib=static=arm");
         println!("cargo:rerun-if-changed=src/boot/arm.s");
     } else if target == "aarch64-vesper-metta" {
-        // File::create(out_dir.join("link.ld")).unwrap()
-            // .write_all(include_bytes!("linker/aarch64.ld")).unwrap();
         // println!("cargo:rustc-link-search={}", out_dir.display());
-        // println!("cargo:rustc-env=RUSTFLAGS='-Clink-arg=-T{} -Zthinlto=no'",
-            // out_dir.join("link.ld").display());
-        // println!("cargo:rustc-link-lib=static=aarch64");
-        println!("cargo:rerun-if-changed=linker/aarch64.ld");
+        println!("cargo:rustc-link-lib=static=aarch64");
         println!("cargo:rerun-if-changed=src/boot/aarch64.s");
+        println!("cargo:rerun-if-changed=linker/aarch64.ld");
+
+        // Todo: generate a runner script that would run objcopy from generated kernel.elf to binary
+        // This script will be ran by `cargo run` command defined in .cargo/config
+        // File::create(out_dir.join("complete.sh")).unwrap()
+            // .write_all(b"Script here").unwrap();
     } else {
         panic!("TARGET env variable is not set to one of supported values");
     }

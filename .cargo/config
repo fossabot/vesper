@@ -1,7 +1,7 @@
 [target.aarch64-vesper-metta]
 rustflags = [
     "-Z", "linker-flavor=ld",
-    "-C", "linker=lld-wrapper",
+    "-C", "linker=aarch64-unknown-linux-musl-ld",
     "-C", "link-arg=-Tlinker/aarch64.ld",
     "-Z", "thinlto=no",
     "-Z", "verbose",

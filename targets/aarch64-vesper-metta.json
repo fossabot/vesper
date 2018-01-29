@@ -16,19 +16,23 @@
   "executables": true,
   "has-elf-tls": true,
   "has-rpath": true,
-  "linker-flavor": "ld",
+  "linker-flavor": "gcc",
   "linker-is-gnu": true,
   "llvm-target": "aarch64-unknown-linux-musl",
   "max-atomic-width": 128,
   "os": "vesper",
   "panic-strategy": "abort",
   "position-independent-executables": true,
+  "no-default-libraries": true,
   "post-link-args": {
     "gcc": [
       "-Wl,-)"
     ]
   },
   "pre-link-args": {
+    "ld": [
+      "-nodefaultlibs", "-nostdlib"
+    ],
     "gcc": [
       "-Wl,--as-needed",
       "-Wl,-z,noexecstack",
