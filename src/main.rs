@@ -137,5 +137,5 @@ pub extern fn kmain() -> ! {
     //     unsafe { *(led_off) = 1 << 15; }
     //     sleep(500000);
     // }
-    loop {}
+    loop { unsafe { asm!("wfi"); } }
 }
