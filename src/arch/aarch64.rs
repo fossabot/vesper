@@ -6,3 +6,8 @@ pub unsafe extern fn karch_start() -> ! {
     // Todo: arch-specific init
     ::kmain()
 }
+
+// Data memory barrier
+pub fn dmb() {
+    unsafe { asm!("dmb sy"); }
+}
