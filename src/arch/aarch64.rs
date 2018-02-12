@@ -3,7 +3,7 @@
 /// and passes control to the kernel boot function kmain().
 #[no_mangle]
 pub unsafe extern fn karch_start() -> ! {
-    // Todo: arch-specific init
+    setup_paging();
     ::kmain()
 }
 
@@ -61,6 +61,16 @@ pub fn write_ttbr_tcr_mair(el: u8, base: u64, tcr: u64, attr: u64)
         _ => loop{},
     }
     unsafe { asm!("isb" :::: "volatile"); }
+}
+
+fn setup_paging() {
+    // test if paging is enabled
+    // if so, loop here
+
+    // @todo
+    // Check mmu and dcache states, loop forever on some setting
+
+    write_ttbr_tcr_mair(1, read_translation_table_base(), read_translation_control(), read_mair());
 }
 
 struct MemMapRegion {
