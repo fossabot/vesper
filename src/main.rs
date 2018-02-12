@@ -4,7 +4,7 @@
 #![feature(used)]
 #![feature(lang_items)]
 #![feature(attr_literals)]
-#![doc(html_root_url = "https://doc.metta.systems/")]
+#![doc(html_root_url = "https://docs.metta.systems/")]
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 use architecture_not_supported_sorry;
