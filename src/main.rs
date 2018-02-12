@@ -364,20 +364,20 @@ impl VC {
 // arch crate is responsible for calling this
 #[no_mangle]
 pub extern fn kmain() -> ! {
-    // #[repr(align=16)]
-    // let mbox_data = [0 as u32; 128];
 
-    // let gpio = GPIO_BASE as *const u32;
-    // let led_on = unsafe { gpio.offset(8) as *mut u32 };
-    // let led_off = unsafe { gpio.offset(11) as *mut u32 };
-
-    if let Some(_size) = VC::get_display_size() {}
+    if let Some(size) = VC::get_display_size() {
+        if let Some(display) = VC::set_display_size(size) {
+            for y in 100..200 {
+                for x in 100..200 {
+                    unsafe { *(display.base as *mut u16)
+                        .offset((display.pitch * y + x / 2) as isize) = 0xffff; }
+                }
+            }
+        }
+    }
 
     // loop {
-    //     unsafe { *(led_on) = 1 << 15; }
-    //     sleep(500000);
-    //     unsafe { *(led_off) = 1 << 15; }
     //     sleep(500000);
     // }
-    loop { unsafe { asm!("wfi"); } }
+    loop {}
 }
