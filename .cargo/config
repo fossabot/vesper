@@ -1,5 +1,5 @@
 [target.aarch64-vesper-metta]
-runner="/usr/local/opt/qemu-rpi3/bin/qemu-system-aarch64 -M raspi3 -kernel"
+runner="/usr/local/opt/qemu-rpi3/bin/qemu-system-aarch64 -M raspi3 -d int -kernel"
 rustflags = [
     "-Z", "linker-flavor=ld",
     "-C", "linker=aarch64-unknown-linux-musl-ld",
