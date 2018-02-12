@@ -63,6 +63,31 @@ pub fn write_ttbr_tcr_mair(el: u8, base: u64, tcr: u64, attr: u64)
     unsafe { asm!("isb" :::: "volatile"); }
 }
 
+struct MemMapRegion {
+    virt: usize,
+    phys: usize,
+    size: usize,
+    attr: usize,
+}
+
+impl MemMapRegion {
+}
+
+// const bcm2837_mem_map: MemMapRegion[] = {
+//     MemMapRegion {
+//         virt: 0x00000000,
+//         phys: 0x00000000,
+//         size: 0x3f000000,
+//         attr: PTE_BLOCK_MEMTYPE(MT_NORMAL) | PTE_BLOCK_INNER_SHARE, // mair
+//     },
+//     MemMapRegion {
+//         virt: 0x3f000000,
+//         phys: 0x3f000000,
+//         size: 0x01000000,
+//         attr: PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) | PTE_BLOCK_NON_SHARE | PTE_BLOCK_PXN | PTE_BLOCK_UXN,
+//     }
+// }
+
 pub struct BcmHost;
 
 impl BcmHost {
