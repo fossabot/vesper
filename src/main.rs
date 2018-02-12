@@ -2,6 +2,7 @@
 #![no_main]
 #![feature(asm)]
 #![feature(used)]
+#![feature(const_fn)]
 #![feature(lang_items)]
 #![feature(attr_literals)]
 #![doc(html_root_url = "https://docs.metta.systems/")]
@@ -40,6 +41,26 @@ struct VC;
 const MAILBOX0READ: u32 = 0x2000b880; // @todo phys2virt
 const MAILBOX0STATUS: u32 = 0x2000b898; // @todo phys2virt
 const MAILBOX0WRITE: u32 = 0x2000b8a0; // @todo phys2virt
+// See BCM2835-ARM-Peripherals.pdf
+// See https://www.raspberrypi.org/forums/viewtopic.php?t=186090 for more details.
+
+// Physical memory is 0x00000000 to 0x40000000
+const fn phys2virt(address: u32) -> u32 {
+    return address;// + 0x80000000;
+}
+
+// RAM bus address is 0xC0000000 to 0xFFFFFFFF
+// Peripheral bus memory is 0x7E000000 to 0x7EFFFFFF
+const fn phys2bus(address: u32) -> u32 {
+    return address;// + (0x40000000); // L2 cache enabled
+    // return address.wrapping_add(0xC0000000); // L2 cache disabled
+}
+
+const fn bus2phys(address: u32) -> u32 {
+    return address;// - (0x40000000); // L2 cache enabled
+    // return address.wrapping_sub(0xC0000000); // L2 cache disabled
+}
+
 
 /* Bit 31 set in status register if the write mailbox is full */
 const MAILBOX_FULL: u32 = 0x80000000;
