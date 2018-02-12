@@ -1,0 +1,42 @@
+    mailbox: mailbox@7e00b880 {
+      compatible = "brcm,bcm2835-mbox";
+      reg = <0x7e00b880 0x40>;
+      interrupts = <0 1>;
+      #mbox-cells = <0>;
+    };
+
+
+TARGET_RPI_3
+BCM2837_64B
+BCM2837
+ARM64
+
+          At the time of writing, the VC FW requires a non-default option in
+          config.txt to request the ARM CPU boot in 64-bit mode:
+          arm_control=0x200
+
+          The VC FW typically provides ARM "stub" code to set up the CPU and
+          quiesce secondary SMP CPUs. This is not currently true in 64-bit
+          mode. In order to boot U-Boot before the VC FW is enhanced, please
+          see the commit description for the commit which added RPi3 support
+          for a workaround. Since the instructions are temporary, they are not
+          duplicated here. The VC FW enhancement is tracked in
+          https://github.com/raspberrypi/firmware/issues/579.
+
+CONFIG_LCD_DT_SIMPLEFB
+CONFIG_VIDEO_BCM2835
+
+bcm2835_get_video_size
+bcm2835_set_video_params
+
+BCM2835_MBOX_INIT_HDR
+
+bcm2835_mbox_call_prop
+BCM2835_MBOX_PROP_CHAN
+
+BCM2835_MBOX_PHYSADDR
+
+arch/arm/mach-bcm283x/
+
+ALLOC_CACHE_ALIGN_BUFFER
+ARCH_DMA_MINALIGN
