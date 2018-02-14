@@ -23,8 +23,13 @@ Scheduling can be viewed as the process of multiplexing the CPU resource between
 At the moment this is not a real-time kernel. It has a small number of potentially long-running kernel operations that are not preemptable (e.g., endpoint deletion and recycling, scheduling, frame and CNode initialisation). This may change in future versions.
 
 ## Credits
- 
+
 Vesper has been influenced by the kernels in L4 family, notably seL4. Fawn and Nemesis provided inspiration for single-address-space and vertical integration of the applications.
 
 ## Build instructions
+
+```
+export RUST_TARGET_PATH=$(pwd)/targets
+xargo build --target=aarch64-vesper-metta
+```
 
