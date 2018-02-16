@@ -772,6 +772,10 @@ impl VC {
 #[no_mangle]
 pub extern fn kmain() -> ! {
 
+    if current_el() == 1 {
+        loop {}
+    }
+
     if let Some(size) = VC::get_display_size() {
         if let Some(display) = VC::set_display_size(size) {
             for y in 100..200 {

@@ -38,6 +38,12 @@ pub fn write_translation_table_base(base: usize) {
     unsafe { asm!("msr ttbr0_el1, $0" :: "r"(base) :: "volatile"); }
 }
 
+pub fn current_el() -> u8 {
+    u8 el;
+    unsafe { asm!("mrs $0, CurrentEL" : "=r"(el) :: "cc" : "volatile"); }
+    el >> 2
+}
+
 // Helper function similar to u-boot
 pub fn write_ttbr_tcr_mair(el: u8, base: u64, tcr: u64, attr: u64)
 {
