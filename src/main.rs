@@ -4,15 +4,21 @@
 #![feature(used)]
 #![feature(const_fn)]
 #![feature(lang_items)]
+// #![feature(repr_align)]
 #![feature(attr_literals)]
+#![feature(core_intrinsics)]
 #![doc(html_root_url = "https://docs.metta.systems/")]
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 use architecture_not_supported_sorry;
 
-extern crate rlibc;
+// use core::intrinsics::abort;
+use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
+use core::intrinsics::volatile_store; // core equivalent of std::ptr::write_volatile
+
 #[macro_use]
 extern crate bitflags;
+extern crate rlibc;
 
 #[macro_use]
 pub mod arch;
@@ -26,11 +32,11 @@ pub use arch::*;
 
 #[lang = "eh_personality"]
 #[no_mangle]
-pub extern fn eh_personality() {}
+pub extern "C" fn eh_personality() {}
 
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub extern fn panic_fmt() -> ! {
+pub extern "C" fn panic_fmt() -> ! {
     loop {}
 }
 
@@ -43,27 +49,35 @@ struct VC;
 
 // Physical memory is 0x00000000 to 0x40000000
 const fn phys2virt(address: u32) -> u32 {
-    return address;// + 0x80000000;
+    address // + 0x80000000;
 }
 
 // RAM bus address is 0xC0000000 to 0xFFFFFFFF
 // Peripheral bus memory is 0x7E000000 to 0x7EFFFFFF
 const fn phys2bus(address: u32) -> u32 {
-    return address;// + (0x40000000); // L2 cache enabled
-    // return address.wrapping_add(0xC0000000); // L2 cache disabled
+    address // + (0x40000000); // L2 cache enabled
+            // return address.wrapping_add(0xC0000000); // L2 cache disabled
 }
 
 const fn bus2phys(address: u32) -> u32 {
-    return address;// - (0x40000000); // L2 cache enabled
-    // return address.wrapping_sub(0xC0000000); // L2 cache disabled
+    address // - (0x40000000); // L2 cache enabled
+            // return address.wrapping_sub(0xC0000000); // L2 cache disabled
 }
 
 // Identity mapped first 1Gb by uboot
-const MAILBOX0READ: u32 = phys2virt(0x3f00b880) as u32; // @todo phys2virt
-const MAILBOX0STATUS: u32 = phys2virt(0x3f00b898) as u32; // @todo phys2virt
-const MAILBOX0WRITE: u32 = phys2virt(0x3f00b8a0) as u32; // @todo phys2virt
+const MAILBOX0READ: u32 = phys2virt(0x3f00_b880) as u32; // @todo phys2virt
+const MAILBOX0STATUS: u32 = phys2virt(0x3f00_b898) as u32; // @todo phys2virt
+const MAILBOX0WRITE: u32 = phys2virt(0x3f00_b8a0) as u32; // @todo phys2virt
 
 // const MAILBOX_PHYSADDR: u32 = 0x2000b880; // verified: u-boot arch/arm/mach-bcm283x/include/mach/mbox.h
+
+fn mmio_write(reg: u32, val: u32) {
+    unsafe { volatile_store(reg as *mut u32, val) }
+}
+
+fn mmio_read(reg: u32) -> u32 {
+    unsafe { volatile_load(reg as *const u32) }
+}
 
 // struct MailboxRegs {
 //     read: u32,
@@ -82,51 +96,51 @@ enum Channel {
 }
 
 const MAILBOX_REQ_CODE: u32 = 0;
-const MAILBOX_RESP_CODE_SUCCESS: u32 = 0x80000000;
+const MAILBOX_RESP_CODE_SUCCESS: u32 = 0x8000_0000;
 
 /* When responding, the VC sets this bit in val_len to indicate a response */
-const MAILBOX_TAG_VAL_LEN_RESPONSE: u32 = 0x80000000;
+const MAILBOX_TAG_VAL_LEN_RESPONSE: u32 = 0x8000_0000;
 
 #[allow(dead_code)]
 enum Tag {
-    GetBoardRev = 0x00010002,
-    GetMacAddress = 0x00010003,
-    GetBoardSerial = 0x00010004,
-    GetArmMemory = 0x00010005,
-    GetPowerState = 0x00020001,
-    SetPowerState = 0x00028001,
-    GetClockRate = 0x00030002,
-    AllocateBuffer = 0x00040001,
-    ReleaseBuffer = 0x00048001,
-    BlankScreen = 0x00040002,
+    GetBoardRev = 0x0001_0002,
+    GetMacAddress = 0x0001_0003,
+    GetBoardSerial = 0x0001_0004,
+    GetArmMemory = 0x0001_0005,
+    GetPowerState = 0x0002_0001,
+    SetPowerState = 0x0002_8001,
+    GetClockRate = 0x0003_0002,
+    AllocateBuffer = 0x0004_0001,
+    ReleaseBuffer = 0x0004_8001,
+    BlankScreen = 0x0004_0002,
     /* Physical means output signal */
-    GetPhysicalWH = 0x00040003,
-    TestPhysicalWH = 0x00044003,
-    SetPhysicalWH = 0x00048003,
+    GetPhysicalWH = 0x0004_0003,
+    TestPhysicalWH = 0x0004_4003,
+    SetPhysicalWH = 0x0004_8003,
     /* Virtual means display buffer */
-    GetVirtualWH = 0x00040004,
-    TestVirtualWH = 0x00044004,
-    SetVirtualWH = 0x00048004,
-    GetDepth = 0x00040005,
-    TestDepth = 0x00044005,
-    SetDepth = 0x00048005,
-    GetPixelOrder = 0x00040006,
-    TestPixelOrder = 0x00044006,
-    SetPixelOrder = 0x00048006,
-    GetAlphaMode = 0x00040007,
-    TestAlphaMode = 0x00044007,
-    SetAlphaMode = 0x00048007,
-    GetPitch = 0x00040008,
+    GetVirtualWH = 0x0004_0004,
+    TestVirtualWH = 0x0004_4004,
+    SetVirtualWH = 0x0004_8004,
+    GetDepth = 0x0004_0005,
+    TestDepth = 0x0004_4005,
+    SetDepth = 0x0004_8005,
+    GetPixelOrder = 0x0004_0006,
+    TestPixelOrder = 0x0004_4006,
+    SetPixelOrder = 0x0004_8006,
+    GetAlphaMode = 0x0004_0007,
+    TestAlphaMode = 0x0004_4007,
+    SetAlphaMode = 0x0004_8007,
+    GetPitch = 0x0004_0008,
     /* Offset of display window within buffer */
-    GetVirtualOffset = 0x00040009,
-    TestVirtualOffset = 0x00044009,
-    SetVirtualOffset = 0x00048009,
-    GetOverscan = 0x0004000a,
-    TestOverscan = 0x0004400a,
-    SetOverscan = 0x0004800a,
-    GetPalette = 0x0004000b,
-    TestPalette = 0x0004400b,
-    SetPalette = 0x0004800b,
+    GetVirtualOffset = 0x0004_0009,
+    TestVirtualOffset = 0x0004_4009,
+    SetVirtualOffset = 0x0004_8009,
+    GetOverscan = 0x0004_000a,
+    TestOverscan = 0x0004_400a,
+    SetOverscan = 0x0004_800a,
+    GetPalette = 0x0004_000b,
+    TestPalette = 0x0004_400b,
+    SetPalette = 0x0004_800b,
     End = 0,
 }
 
@@ -539,41 +553,40 @@ int bcm2835_mbox_call_prop(u32 chan, struct bcm2835_mbox_hdr *buffer);
  */
 
 /* Bit 31 set in status register if the write mailbox is full */
-const MAILBOX_STATUS_WR_FULL: u32 = 0x80000000;
+const MAILBOX_STATUS_WR_FULL: u32 = 0x8000_0000;
 
 /* Bit 30 set in status register if the read mailbox is empty */
-const MAILBOX_STATUS_RD_EMPTY: u32 = 0x40000000;
+const MAILBOX_STATUS_RD_EMPTY: u32 = 0x4000_0000;
 
 impl Mailbox {
     pub fn write(channel: u8, physical_base: *const u8) {
-        let mailbox_status = MAILBOX0STATUS as *mut u32;
-        let mailbox_write = MAILBOX0WRITE as *mut u32;
         // let mailbox = MAILBOX_PHYSADDR as *mut MailboxRegs;
         let mut count: u32 = 0;
 
-        while unsafe { *(mailbox_status) & MAILBOX_STATUS_WR_FULL != 0 } {
+        while mmio_read(MAILBOX0STATUS) & MAILBOX_STATUS_WR_FULL != 0 {
             flushcache(MAILBOX0STATUS as usize);
             count += 1;
             if count > (1 << 25) {
-                return
+                return;
             }
         }
         dmb();
-        unsafe { *(mailbox_write) = phys2bus(physical_base as u32) | channel as u32 };
+        mmio_write(
+            MAILBOX0WRITE,
+            phys2bus(physical_base as u32) | u32::from(channel),
+        );
     }
 
     pub fn read(channel: u8) -> Option<u32> {
-        let mailbox_status = MAILBOX0STATUS as *mut u32;
-        let mailbox_read = MAILBOX0READ as *mut u32;
         // let mailbox = MAILBOX_PHYSADDR as *mut MailboxRegs;
         let mut count: u32 = 0;
 
         loop {
-            while unsafe {*(mailbox_status)} & MAILBOX_STATUS_RD_EMPTY != 0 {
+            while mmio_read(MAILBOX0STATUS) & MAILBOX_STATUS_RD_EMPTY != 0 {
                 flushcache(MAILBOX0STATUS as usize);
                 count += 1;
                 if count > (1 << 25) {
-                    return None
+                    return None;
                 }
             }
 
@@ -581,7 +594,7 @@ impl Mailbox {
              * Data memory barriers as we've switched peripheral
              */
             dmb();
-            let data = unsafe {*(mailbox_read)};
+            let data = mmio_read(MAILBOX0READ);
             dmb();
 
             if (data as u8 & CHANNEL_MASK) == channel {
@@ -623,72 +636,103 @@ struct Display {
 // val size
 // ...data buf
 
+#[repr(align(16))]
+struct Mbox([u32; 22]);
+
+impl Mbox {
+    fn new() -> Mbox {
+        Mbox { 0: [0; 22] }
+    }
+}
+
 impl VC {
     fn get_display_size() -> Option<Size2d> {
-        #[repr(align=16)]
-        let mut mbox = [0 as u32; 8];
+        let mut mbox = Mbox::new();
 
-        mbox[0] = 8 * 4;   // Total size
-        mbox[1] = MAILBOX_REQ_CODE;       // Request
-        mbox[2] = Tag::GetPhysicalWH as u32; // Display size  // tag
-        mbox[3] = 8;       // Buffer size   // val buf size
-        mbox[4] = 0;       // Request size  // val size
-        mbox[5] = 0;       // Space for horizontal resolution
-        mbox[6] = 0;       // Space for vertical resolution
-        mbox[7] = Tag::End as u32;       // End tag
+        mbox.0[0] = 8 * 4; // Total size
+        mbox.0[1] = MAILBOX_REQ_CODE; // Request
+        mbox.0[2] = Tag::GetPhysicalWH as u32; // Display size  // tag
+        mbox.0[3] = 8; // Buffer size   // val buf size
+        mbox.0[4] = 0; // Request size  // val size
+        mbox.0[5] = 0; // Space for horizontal resolution
+        mbox.0[6] = 0; // Space for vertical resolution
+        mbox.0[7] = Tag::End as u32; // End tag
 
-        if let None = Mailbox::call(Channel::Tags as u8, &mbox as *const u32 as *const u8) { // @todo virt2phys
-            return None
+        Mailbox::call(Channel::Tags as u8, &mbox.0 as *const u32 as *const u8)?;
+
+        if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
+            return None;
         }
-        if mbox[1] != MAILBOX_RESP_CODE_SUCCESS {
-            return None
+        if mbox.0[5] == 0 && mbox.0[6] == 0 {
+            // Qemu emulation returns 0x0
+            return Some(Size2d { x: 640, y: 480 });
         }
-        if mbox[5] == 0 && mbox[6] == 0 { // Qemu emulation returns 0x0
-            return Some(Size2d { x: 640, y: 480 })
-        }
-        Some(Size2d { x: mbox[5], y: mbox[6] })
+        Some(Size2d {
+            x: mbox.0[5],
+            y: mbox.0[6],
+        })
     }
 
-    fn set_display_size(size: Size2d) -> Option<Display> { // @todo Make Display use VC functions internally instead
-        #[repr(align=16)]
-        let mut mbox = [0 as u32; 22];
+    fn set_display_size(size: Size2d) -> Option<Display> {
+        // @todo Make Display use VC functions internally instead
+        let mut mbox = Mbox::new();
         let mut count: usize = 0;
 
-        count += 1; mbox[count] = MAILBOX_REQ_CODE;       // Request
-        count += 1; mbox[count] = Tag::SetPhysicalWH as u32;
-        count += 1; mbox[count] = 8;       // Buffer size   // val buf size
-        count += 1; mbox[count] = 8;       // Request size  // val size
-        count += 1; mbox[count] = size.x;  // Space for horizontal resolution
-        count += 1; mbox[count] = size.y;  // Space for vertical resolution
-        count += 1; mbox[count] = Tag::SetVirtualWH as u32;
-        count += 1; mbox[count] = 8;       // Buffer size   // val buf size
-        count += 1; mbox[count] = 8;       // Request size  // val size
-        count += 1; mbox[count] = size.x;  // Space for horizontal resolution
-        count += 1; mbox[count] = size.y;  // Space for vertical resolution
-        count += 1; mbox[count] = Tag::SetDepth as u32;
-        count += 1; mbox[count] = 4;       // Buffer size   // val buf size
-        count += 1; mbox[count] = 4;       // Request size  // val size
-        count += 1; mbox[count] = 16;      // 16 bpp
-        count += 1; mbox[count] = Tag::AllocateBuffer as u32;
-        count += 1; mbox[count] = 8;       // Buffer size   // val buf size
-        count += 1; mbox[count] = 4;       // Request size  // val size
-        count += 1; mbox[count] = 16;      // Alignment = 16
-        count += 1; mbox[count] = 0;       // Space for response
-        count += 1; mbox[count] = Tag::End as u32;
-        mbox[0] = (count * 4) as u32;      // Total size
+        count += 1;
+        mbox.0[count] = MAILBOX_REQ_CODE; // Request
+        count += 1;
+        mbox.0[count] = Tag::SetPhysicalWH as u32;
+        count += 1;
+        mbox.0[count] = 8; // Buffer size   // val buf size
+        count += 1;
+        mbox.0[count] = 8; // Request size  // val size
+        count += 1;
+        mbox.0[count] = size.x; // Space for horizontal resolution
+        count += 1;
+        mbox.0[count] = size.y; // Space for vertical resolution
+        count += 1;
+        mbox.0[count] = Tag::SetVirtualWH as u32;
+        count += 1;
+        mbox.0[count] = 8; // Buffer size   // val buf size
+        count += 1;
+        mbox.0[count] = 8; // Request size  // val size
+        count += 1;
+        mbox.0[count] = size.x; // Space for horizontal resolution
+        count += 1;
+        mbox.0[count] = size.y; // Space for vertical resolution
+        count += 1;
+        mbox.0[count] = Tag::SetDepth as u32;
+        count += 1;
+        mbox.0[count] = 4; // Buffer size   // val buf size
+        count += 1;
+        mbox.0[count] = 4; // Request size  // val size
+        count += 1;
+        mbox.0[count] = 16; // 16 bpp
+        count += 1;
+        mbox.0[count] = Tag::AllocateBuffer as u32;
+        count += 1;
+        mbox.0[count] = 8; // Buffer size   // val buf size
+        count += 1;
+        mbox.0[count] = 4; // Request size  // val size
+        count += 1;
+        mbox.0[count] = 16; // Alignment = 16
+        count += 1;
+        mbox.0[count] = 0; // Space for response
+        count += 1;
+        mbox.0[count] = Tag::End as u32;
+        mbox.0[0] = (count * 4) as u32; // Total size
 
         let max_count = count;
 
-        if let None = Mailbox::call(Channel::Tags as u8, &mbox as *const u32 as *const u8) { // @todo virt2phys
-            return None
-        }
-        if mbox[1] != MAILBOX_RESP_CODE_SUCCESS {
-            return None
+        Mailbox::call(Channel::Tags as u8, &mbox.0 as *const u32 as *const u8)?;
+
+        if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
+            return None;
         }
 
-        count = 2;    /* First tag */
-        while mbox[count] != 0 {
-            if mbox[count] == Tag::AllocateBuffer as u32 {
+        count = 2; /* First tag */
+        while mbox.0[count] != 0 {
+            if mbox.0[count] == Tag::AllocateBuffer as u32 {
                 break;
             }
 
@@ -696,7 +740,7 @@ impl VC {
              * Advance count by 1 (tag) + 2 (buffer size/value size)
              *                          + specified buffer size
              */
-            count += 3 + (mbox[count+1] / 4) as usize;
+            count += 3 + (mbox.0[count + 1] / 4) as usize;
 
             if count > max_count {
                 loop {}
@@ -705,18 +749,18 @@ impl VC {
         }
 
         /* Must be 8 bytes, plus MSB set to indicate a response */
-        if mbox[count+2] != 0x80000008 {
+        if mbox.0[count + 2] != 0x8000_0008 {
             loop {}
             return None;
         }
 
         /* Framebuffer address/size in response */
-        let physical_screenbase = mbox[count+3];
-        let screensize = mbox[count+4];
+        let physical_screenbase = mbox.0[count + 3];
+        let screensize = mbox.0[count + 4];
 
         if physical_screenbase == 0 || screensize == 0 {
             loop {}
-            return None
+            return None;
         }
 
         /* physical_screenbase is the address of the screen in RAM
@@ -726,38 +770,37 @@ impl VC {
         let screenbase = physical_screenbase;
 
         /* Get the framebuffer pitch (bytes per line) */
-        mbox[0] = 7 * 4;      // Total size
-        mbox[1] = 0;      // Request
-        mbox[2] = Tag::GetPitch as u32;    // Display size
-        mbox[3] = 4;      // Buffer size
-        mbox[4] = 0;      // Request size
-        mbox[5] = 0;      // Space for pitch
-        mbox[6] = Tag::End as u32;
+        mbox.0[0] = 7 * 4; // Total size
+        mbox.0[1] = 0; // Request
+        mbox.0[2] = Tag::GetPitch as u32; // Display size
+        mbox.0[3] = 4; // Buffer size
+        mbox.0[4] = 0; // Request size
+        mbox.0[5] = 0; // Space for pitch
+        mbox.0[6] = Tag::End as u32;
 
-        if let None = Mailbox::call(Channel::Tags as u8, &mbox as *const u32 as *const u8) { // @todo virt2phys
-            return None
-        }
-        if mbox[1] != MAILBOX_RESP_CODE_SUCCESS {
-            return None
+        Mailbox::call(Channel::Tags as u8, &mbox.0 as *const u32 as *const u8)?;
+
+        if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
+            return None;
         }
 
         /* Must be 4 bytes, plus MSB set to indicate a response */
-        if mbox[4] != 0x80000004 {
+        if mbox.0[4] != 0x8000_0004 {
             loop {}
-            return None
+            return None;
         }
 
-        let pitch = mbox[5];
+        let pitch = mbox.0[5];
         if pitch == 0 {
             loop {}
-            return None
+            return None;
         }
 
         /* Need to set up max_x/max_y before using Display::write */
         let max_x = size.x / CHARSIZE_X;
         let max_y = size.y / CHARSIZE_Y;
 
-        return Some(Display {
+        Some(Display {
             base: screenbase,
             size: screensize,
             pitch: pitch,
@@ -770,18 +813,19 @@ impl VC {
 // Kernel entry point
 // arch crate is responsible for calling this
 #[no_mangle]
-pub extern fn kmain() -> ! {
-
-    if current_el() == 1 {
-        loop {}
-    }
+pub extern "C" fn kmain() -> ! {
+    // if current_el() == 1 {
+    //     loop {}
+    // }
 
     if let Some(size) = VC::get_display_size() {
         if let Some(display) = VC::set_display_size(size) {
             for y in 100..200 {
                 for x in 100..200 {
-                    unsafe { *(display.base as *mut u16)
-                        .offset((display.pitch * y + x / 2) as isize) = 0xffff; }
+                    unsafe {
+                        *(display.base as *mut u16).offset((display.pitch * y + x / 2) as isize) =
+                            0xffff;
+                    }
                 }
             }
         }
