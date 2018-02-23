@@ -6,6 +6,7 @@
 #![feature(lang_items)]
 // #![feature(repr_align)]
 #![feature(attr_literals)]
+#![feature(ptr_internals)] // temp
 #![feature(core_intrinsics)]
 #![doc(html_root_url = "https://docs.metta.systems/")]
 
