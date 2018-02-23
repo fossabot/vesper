@@ -18,6 +18,7 @@ use core::intrinsics::volatile_store; // core equivalent of std::ptr::write_vola
 
 #[macro_use]
 extern crate bitflags;
+extern crate multiboot2;
 extern crate rlibc;
 
 #[macro_use]
