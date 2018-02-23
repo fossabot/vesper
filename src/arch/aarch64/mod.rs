@@ -1,3 +1,8 @@
+// mod arch::aarch64
+
+mod memory;
+pub use self::memory::{PhysicalAddress, VirtualAddress};
+
 /// The entry to Rust, all things must be initialized
 /// This is called by assembly trampoline, does arch-specific init
 /// and passes control to the kernel boot function kmain().
@@ -20,8 +25,8 @@ pub fn flushcache(address: usize) {
     }
 }
 
-pub fn read_translation_table_base() -> u64 {
-    let mut base: u64 = 0;
+pub fn read_translation_table_base() -> PhysicalAddress {
+    let mut base: PhysicalAddress = 0;
     unsafe {
         asm!("mrs $0, ttbr0_el1" : "=r"(base) ::: "volatile");
     }
@@ -44,7 +49,7 @@ pub fn read_mair() -> u64 {
     mair
 }
 
-pub fn write_translation_table_base(base: usize) {
+pub fn write_translation_table_base(base: PhysicalAddress) {
     unsafe {
         asm!("msr ttbr0_el1, $0" :: "r"(base) :: "volatile");
     }
@@ -59,7 +64,7 @@ pub fn current_el() -> u8 {
 }
 
 // Helper function similar to u-boot
-pub fn write_ttbr_tcr_mair(el: u8, base: u64, tcr: u64, attr: u64) {
+pub fn write_ttbr_tcr_mair(el: u8, base: PhysicalAddress, tcr: u64, attr: u64) {
     unsafe {
         asm!("dsb sy" :::: "volatile");
     }
@@ -94,9 +99,6 @@ pub fn write_ttbr_tcr_mair(el: u8, base: u64, tcr: u64, attr: u64) {
 
 // aarch64 granules and page sizes howto:
 // https://stackoverflow.com/questions/34269185/simultaneous-existence-of-different-sized-pages-on-aarch64
-
-// #[repr(align=0x4000)]
-// let page_tables: [4096; u32] = ...;
 
 // Code from redox-os:
 
@@ -157,8 +159,8 @@ bitflags! {
 }
 
 struct MemMapRegion {
-    virt: usize,
-    phys: usize,
+    virt: VirtualAddress,
+    phys: PhysicalAddress,
     size: usize,
     attr: MemType, // MAIR flags
 }
@@ -173,7 +175,7 @@ fn setup_paging() {
     // Check mmu and dcache states, loop forever on some setting
 
     write_ttbr_tcr_mair(
-        1,
+        1, //el
         read_translation_table_base(),
         read_translation_control(),
         read_mair(),
@@ -200,7 +202,7 @@ pub struct BcmHost;
 impl BcmHost {
     // As per https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md
     /// This returns the ARM-side physical address where peripherals are mapped.
-    pub fn get_peripheral_address() -> usize {
+    pub fn get_peripheral_address() -> PhysicalAddress {
         0x3f00_0000
     }
 
@@ -210,7 +212,7 @@ impl BcmHost {
     }
 
     /// This returns the bus address of the SDRAM.
-    pub fn get_sdram_address() -> usize {
+    pub fn get_sdram_address() -> PhysicalAddress {
         0xC000_0000 // uncached
     }
 }
