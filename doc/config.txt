@@ -1,0 +1,6 @@
+# Set GPIO pins for JTAG debugger connection on rpi3
+gpio=22-25,27=a4
+gpio=4=a5
+# Alternatively, based on https://github.com/OP-TEE/optee_os/issues/1634
+# https://github.com/raspberrypi/firmware/issues/639
+enable_jtag_gpio=1
