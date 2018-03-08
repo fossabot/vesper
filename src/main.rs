@@ -56,20 +56,31 @@ const fn phys2virt(address: u32) -> u32 {
 
 // RAM bus address is 0xC0000000 to 0xFFFFFFFF
 // Peripheral bus memory is 0x7E000000 to 0x7EFFFFFF
-const fn phys2bus(address: u32) -> u32 {
-    address // + (0x40000000); // L2 cache enabled
-            // return address.wrapping_add(0xC0000000); // L2 cache disabled
+fn phys2bus(address: u32) -> u32 {
+    address.wrapping_add(0xC0000000) // L2 cache disabled
 }
 
-const fn bus2phys(address: u32) -> u32 {
-    address // - (0x40000000); // L2 cache enabled
-            // return address.wrapping_sub(0xC0000000); // L2 cache disabled
+fn bus2phys(address: u32) -> u32 {
+    address.wrapping_sub(0xC0000000) // L2 cache disabled
 }
+
+const PERIPHERAL_BASE: u32 = phys2virt(0x3F00_0000); // Base address for all peripherals
+
+const MAIL_BASE: u32 = PERIPHERAL_BASE + 0xb880;
+
+// Mailbox Peek  Read/Write  Status  Sender  Config
+//    0    0x10  0x00        0x18    0x14    0x1c
+//    1    0x30  0x20        0x38    0x34    0x3c
+//
+// Only mailbox 0's status can trigger interrupts on the ARM, so Mailbox 0 is
+// always for communication from VC to ARM and Mailbox 1 is for ARM to VC.
+//
+// The ARM should never write Mailbox 0 or read Mailbox 1.
 
 // Identity mapped first 1Gb by uboot
-const MAILBOX0READ: u32 = phys2virt(0x3f00_b880) as u32; // @todo phys2virt
-const MAILBOX0STATUS: u32 = phys2virt(0x3f00_b898) as u32; // @todo phys2virt
-const MAILBOX0WRITE: u32 = phys2virt(0x3f00_b8a0) as u32; // @todo phys2virt
+const MAILBOX0READ: u32 = MAIL_BASE; // This is Mailbox0 read for ARM, can't write
+const MAILBOX0STATUS: u32 = MAIL_BASE + 0x18;
+const MAILBOX0WRITE: u32 = MAIL_BASE + 0x20; // This is Mailbox1 write for ARM, can't read
 
 // const MAILBOX_PHYSADDR: u32 = 0x2000b880; // verified: u-boot arch/arm/mach-bcm283x/include/mach/mbox.h
 
@@ -92,9 +103,21 @@ fn mmio_read(reg: u32) -> u32 {
 /* Lower 4-bits are channel ID */
 const CHANNEL_MASK: u8 = 0xf;
 
+/*
+ * Source https://elinux.org/RPi_Framebuffer
+ * Source for channels 8 and 9: https://github.com/raspberrypi/firmware/wiki/Mailboxes
+ */
 #[repr(u8)]
 enum Channel {
-    Tags = 8,
+    Power = 0,
+    Framebuffer = 1,
+    VirtualUart = 2,
+    Vchiq = 3,
+    Leds = 4,
+    Buttons = 5,
+    TouchScreen = 6,
+    PropertyTagsArmToVc = 8,
+    PropertyTagsVcToArm = 9,
 }
 
 const MAILBOX_REQ_CODE: u32 = 0;
@@ -575,7 +598,7 @@ impl Mailbox {
         dmb();
         mmio_write(
             MAILBOX0WRITE,
-            phys2bus(physical_base as u32) | u32::from(channel),
+            phys2bus(physical_base as u32 & 0xFFFF_FFF0) | u32::from(channel),
         );
     }
 
@@ -647,7 +670,54 @@ impl Mbox {
     }
 }
 
+struct GpuFb {
+    width: u32,
+    height: u32,
+    vwidth: u32,
+    vheight: u32,
+    pitch: u32,
+    depth: u32,
+    x_offset: u32,
+    y_offset: u32,
+    pointer: u32,
+    size: u32,
+}
+
+impl GpuFb {
+    fn init(size: Size2d) -> GpuFb {
+        GpuFb {
+            width: size.x,
+            height: size.y,
+            vwidth: size.x,
+            vheight: size.y,
+            pitch: 0u32,
+            depth: 24u32,
+            x_offset: 0u32,
+            y_offset: 0u32,
+            pointer: 0u32,
+            size: 0u32,
+        }
+    }
+}
+
 impl VC {
+    // Use mailbox framebuffer interface to initialize
+    fn init_fb(size: Size2d) -> Option<Display> {
+        /* Need to set up max_x/max_y before using Display::write */
+        let max_x = size.x / CHARSIZE_X;
+        let max_y = size.y / CHARSIZE_Y;
+
+        let mut fb_info: GpuFb = GpuFb::init(size);
+
+        Some(Display {
+            base: fb_info.pointer,
+            size: fb_info.size,
+            pitch: fb_info.pitch,
+            max_x: max_x,
+            max_y: max_y,
+        })
+    }
+
     fn get_display_size() -> Option<Size2d> {
         let mut mbox = Mbox::new();
 
@@ -660,7 +730,7 @@ impl VC {
         mbox.0[6] = 0; // Space for vertical resolution
         mbox.0[7] = Tag::End as u32; // End tag
 
-        Mailbox::call(Channel::Tags as u8, &mbox.0 as *const u32 as *const u8)?;
+        Mailbox::call(Channel::PropertyTagsArmToVc as u8, &mbox.0 as *const u32 as *const u8)?;
 
         if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
             return None;
@@ -726,7 +796,7 @@ impl VC {
 
         let max_count = count;
 
-        Mailbox::call(Channel::Tags as u8, &mbox.0 as *const u32 as *const u8)?;
+        Mailbox::call(Channel::PropertyTagsArmToVc as u8, &mbox.0 as *const u32 as *const u8)?;
 
         if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
             return None;
@@ -780,7 +850,7 @@ impl VC {
         mbox.0[5] = 0; // Space for pitch
         mbox.0[6] = Tag::End as u32;
 
-        Mailbox::call(Channel::Tags as u8, &mbox.0 as *const u32 as *const u8)?;
+        Mailbox::call(Channel::PropertyTagsArmToVc as u8, &mbox.0 as *const u32 as *const u8)?;
 
         if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
             return None;
@@ -812,29 +882,31 @@ impl VC {
     }
 }
 
+fn putpixel(x: u16, y: u16, color: u32, display: &mut Display) {
+    let f = |v: u32, chan: u16| {
+        unsafe { *(display.base as *mut u8).offset((y as u32 * display.pitch + x as u32 * 3 + chan as u32) as isize) = v as u8; }
+    };
+
+    f(color & 0xff, 0);
+    f((color >> 8) & 0xff, 1);
+    f((color >> 16) & 0xff, 2)
+}
+
+fn rect(x1: u16, y1: u16, x2: u16, y2: u16, color: u32, display: &mut Display) {
+    for y in y1..y2 {
+        for x in x1..x2 {
+            putpixel(x, y, color, display);
+        }
+    }
+}
+
 // Kernel entry point
 // arch crate is responsible for calling this
 #[no_mangle]
 pub extern "C" fn kmain() -> ! {
-    // if current_el() == 1 {
-    //     loop {}
-    // }
-
-    if let Some(size) = VC::get_display_size() {
-        if let Some(display) = VC::set_display_size(size) {
-            for y in 100..200 {
-                for x in 100..200 {
-                    unsafe {
-                        *(display.base as *mut u16).offset((display.pitch * y + x / 2) as isize) =
-                            0xffff;
-                    }
-                }
-            }
-        }
+    if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
+        rect(100, 100, 200, 200, 0xff_ff_ff, &mut display);
     }
 
-    // loop {
-    //     sleep(500000);
-    // }
     loop {}
 }
