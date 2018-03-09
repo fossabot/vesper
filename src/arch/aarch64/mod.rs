@@ -8,6 +8,10 @@ pub use self::memory::{PhysicalAddress, VirtualAddress};
 /// and passes control to the kernel boot function kmain().
 #[no_mangle]
 pub unsafe extern "C" fn karch_start() -> ! {
+    if read_cpu_id() != 0 {
+        endless_sleep();
+    }
+
     // setup_paging();
     ::kmain()
 }
@@ -31,6 +35,22 @@ pub fn read_translation_table_base() -> PhysicalAddress {
         asm!("mrs $0, ttbr0_el1" : "=r"(base) ::: "volatile");
     }
     base
+}
+
+pub fn read_cpu_id() -> u8 {
+    let mut id: u8;
+    unsafe {
+        asm!("mrs $0, mpidr_el1" : "=r"(id) ::: "volatile");
+    }
+    id & 0x3
+}
+
+pub fn endless_sleep() -> ! {
+    loop {
+        unsafe {
+            asm!("wfe" :::: "volatile");
+        }
+    }
 }
 
 pub fn read_translation_control() -> u64 {
