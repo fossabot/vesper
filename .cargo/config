@@ -1,8 +1,8 @@
 [target.aarch64-vesper-metta]
 runner="qemu-system-aarch64 -M raspi3 -d in_asm -serial stdio -kernel"
 rustflags = [
-    "-Z", "linker-flavor=ld",
-    "-C", "linker=aarch64-unknown-linux-musl-ld",
+    "-Z", "linker-flavor=ld.lld",
+    "-C", "linker=/usr/local/Cellar/llvm/HEAD-2e97c7a/bin/ld.lld",
     "-C", "link-arg=-Tlinker/aarch64.ld",
     "-Z", "thinlto=no",
     "-Z", "verbose",
