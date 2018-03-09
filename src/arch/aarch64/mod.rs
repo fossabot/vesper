@@ -8,7 +8,7 @@ pub use self::memory::{PhysicalAddress, VirtualAddress};
 /// and passes control to the kernel boot function kmain().
 #[no_mangle]
 pub unsafe extern "C" fn karch_start() -> ! {
-    setup_paging();
+    // setup_paging();
     ::kmain()
 }
 
