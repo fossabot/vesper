@@ -710,6 +710,8 @@ impl VC {
 
         let mut fb_info: GpuFb = GpuFb::init(size);
 
+        Mailbox::call(Channel::Framebuffer as u8, &fb_info.width as *const u32 as *const u8)?;
+
         Some(Display {
             base: fb_info.pointer,
             size: fb_info.size,
