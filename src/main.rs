@@ -815,14 +815,12 @@ impl VC {
             count += 3 + (mbox.0[count + 1] / 4) as usize;
 
             if count > max_count {
-                loop {}
                 return None;
             }
         }
 
         /* Must be 8 bytes, plus MSB set to indicate a response */
         if mbox.0[count + 2] != 0x8000_0008 {
-            loop {}
             return None;
         }
 
@@ -831,7 +829,6 @@ impl VC {
         let screensize = mbox.0[count + 4];
 
         if physical_screenbase == 0 || screensize == 0 {
-            loop {}
             return None;
         }
 
@@ -858,13 +855,11 @@ impl VC {
 
         /* Must be 4 bytes, plus MSB set to indicate a response */
         if mbox.0[4] != 0x8000_0004 {
-            loop {}
             return None;
         }
 
         let pitch = mbox.0[5];
         if pitch == 0 {
-            loop {}
             return None;
         }
 
