@@ -33,5 +33,12 @@ Use rustc nightly 2018-04-01 or later because of [bugs fixed](https://github.com
 ```
 export RUST_TARGET_PATH=$(pwd)/targets
 xargo build --target=aarch64-vesper-metta
+
+# Post-command:
+aarch64-unknown-linux-musl-ld -O binary target/aarch64-vesper-metta/debug/vesper /Volumes/boot/vesper
+
+# config.txt on RPi3
+kernel=vesper
+arm_64bit=1
 ```
 
