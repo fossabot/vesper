@@ -1,8 +1,7 @@
 .globl _start
 .section .entry, "x"
 _start:
-    // Check CPU, if not BP then just hang
-
+    orr sp, xzr, #0x80000 // Set sp to 0x80000 (just before kernel start)
     b karch_start
 
 // Crazy initial pagetables here
