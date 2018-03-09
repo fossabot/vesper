@@ -24,21 +24,9 @@
   "panic-strategy": "abort",
   "position-independent-executables": true,
   "no-default-libraries": true,
-  "post-link-args": {
-    "gcc": [
-      "-Wl,-)"
-    ]
-  },
   "pre-link-args": {
     "ld": [
       "-nodefaultlibs", "-nostdlib"
-    ],
-    "gcc": [
-      "-Wl,--as-needed",
-      "-Wl,-z,noexecstack",
-      "-nostdlib",
-      "-Wl,--eh-frame-hdr",
-      "-Wl,-("
     ]
   },
   "relro-level": "full",
