@@ -670,6 +670,7 @@ impl Mbox {
     }
 }
 
+#[repr(align(16))]
 struct GpuFb {
     width: u32,
     height: u32,
