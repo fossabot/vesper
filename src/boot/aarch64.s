@@ -1,6 +1,8 @@
 .globl _start
 .section .entry, "x"
 _start:
+    // Check CPU, if not BP then just hang
+
     b karch_start
 
 // Crazy initial pagetables here
