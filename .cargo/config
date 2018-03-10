@@ -1,5 +1,5 @@
 [target.aarch64-vesper-metta]
-runner="qemu-system-aarch64 -M raspi3 -d in_asm -serial stdio -kernel"
+runner=".cargo/runscript.sh"
 rustflags = [
     "-Z", "linker-flavor=ld",
     "-C", "linker=aarch64-unknown-linux-musl-ld",

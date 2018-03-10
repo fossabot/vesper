@@ -35,10 +35,13 @@ export RUST_TARGET_PATH=$(pwd)/targets
 xargo build --target=aarch64-vesper-metta
 
 # Post-command:
-aarch64-unknown-linux-musl-ld -O binary target/aarch64-vesper-metta/debug/vesper /Volumes/boot/vesper
+cp target/aarch64-vesper-metta/debug/vesper.bin /Volumes/boot/vesper
 
 # config.txt on RPi3
 kernel=vesper
 arm_64bit=1
+
+# To run in qemu, `brew install --HEAD qemu` and
+xargo run --target=aarch64-vesper-metta
 ```
 
