@@ -12,7 +12,7 @@ pub unsafe extern "C" fn karch_start() -> ! {
         endless_sleep();
     }
 
-    // setup_paging();
+    setup_paging();
     ::kmain()
 }
 
@@ -188,9 +188,6 @@ struct MemMapRegion {
 impl MemMapRegion {}
 
 fn setup_paging() {
-    // test if paging is enabled
-    // if so, loop here
-
     // @todo
     // Check mmu and dcache states, loop forever on some setting
 
