@@ -649,6 +649,8 @@ struct Display {
     pitch: u32,
     max_x: u32,
     max_y: u32,
+    width: u32,
+    height: u32,
 }
 
 // bufsize
@@ -726,9 +728,11 @@ impl VC {
             pitch: fb_info.pitch,
             max_x: max_x,
             max_y: max_y,
+            width: fb_info.width,
+            height: fb_info.height,
         })
     }
-
+/*
     fn get_display_size() -> Option<Size2d> {
         let mut mbox = Mbox::new();
 
@@ -885,7 +889,7 @@ impl VC {
             max_x: max_x,
             max_y: max_y,
         })
-    }
+    }*/
 }
 
 fn putpixel(x: u16, y: u16, color: u32, display: &mut Display) {
@@ -977,6 +981,7 @@ pub extern "C" fn kmain() -> ! {
     if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
         rect(100, 100, 200, 200, RGB::rgb(255,255,255).0, &mut display);
         draw_text(50, 50, "Hello world!", RGB::rgb(0,0,255).0, &mut display);
+        // draw_text(50, 150, core::fmt("Display width {}", display.width), RGB::rgb(255,0,0).0, &mut display);
     }
 
     loop {}
