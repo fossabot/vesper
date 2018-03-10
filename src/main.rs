@@ -670,6 +670,14 @@ impl Mbox {
     }
 }
 
+struct RGB(u32);
+
+impl RGB {
+    fn rgb(r: u8, g: u8, b: u8) -> RGB {
+        RGB((b as u32) << 16 | (g as u32) << 8 | r as u32)
+    }
+}
+
 #[repr(align(16))]
 struct GpuFb {
     width: u32,
@@ -967,8 +975,8 @@ fn draw_text(x: u16, y: u16, text: &str, color: u32, display: &mut Display) {
 #[no_mangle]
 pub extern "C" fn kmain() -> ! {
     if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
-        rect(100, 100, 200, 200, 0xff_ff_ff, &mut display);
-        draw_text(50, 50, "Hello world!", 0xff_00_00, &mut display);
+        rect(100, 100, 200, 200, RGB::rgb(255,255,255).0, &mut display);
+        draw_text(50, 50, "Hello world!", RGB::rgb(0,0,255).0, &mut display);
     }
 
     loop {}
