@@ -39,6 +39,7 @@ pub extern "C" fn eh_personality() {}
 #[lang = "panic_fmt"]
 #[no_mangle]
 pub extern "C" fn panic_fmt() -> ! {
+    // @todo rect() + drawtext("PANIC")?
     loop {}
 }
 
