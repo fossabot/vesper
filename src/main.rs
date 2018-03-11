@@ -13,6 +13,7 @@
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 use architecture_not_supported_sorry;
 
+use core::fmt;
 // use core::intrinsics::abort;
 use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
 use core::intrinsics::volatile_store; // core equivalent of std::ptr::write_volatile
@@ -25,6 +26,8 @@ extern crate rlibc;
 #[macro_use]
 pub mod arch;
 pub use arch::*;
+pub mod kernel;
+pub use kernel::*;
 
 // User-facing kernel parts - syscalls and capability invocations.
 // pub mod vesper; -- no mod exported, because available through syscall interface
