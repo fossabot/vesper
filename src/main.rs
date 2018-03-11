@@ -977,8 +977,7 @@ fn draw_text(x: u16, y: u16, text: &str, color: u32, display: &mut Display) {
 
 // Kernel entry point
 // arch crate is responsible for calling this
-#[no_mangle]
-pub extern "C" fn kmain() -> ! {
+pub fn kmain() -> ! {
     if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
         rect(100, 100, 200, 200, RGB::rgb(255,255,255).0, &mut display);
         draw_text(50, 50, "Hello world!", RGB::rgb(0,0,255).0, &mut display);
