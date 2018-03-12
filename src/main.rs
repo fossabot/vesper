@@ -170,6 +170,13 @@ enum Tag {
     End = 0,
 }
 
+// ?
+trait TagInterface {
+    get
+    set
+    test
+};
+
 /*
 
 struct bcm2835_mbox_hdr {
