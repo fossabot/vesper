@@ -28,6 +28,8 @@ Vesper has been influenced by the kernels in L4 family, notably seL4. Fawn and N
 
 ## Build instructions
 
+Use rustc nightly 2018-04-01 or later because of [bugs fixed](https://github.com/rust-lang/rust/issues/48884).
+
 ```
 export RUST_TARGET_PATH=$(pwd)/targets
 xargo build --target=aarch64-vesper-metta
