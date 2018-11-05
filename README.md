@@ -6,7 +6,7 @@ Vesper is a capability-based single-address-space exokernel, it tries to remain 
 
 Exokernel's distinctive trait is that it provides mechanisms but not policies. Vesper tries to move as many policy decisions as possible to the library OS.
 
-* Single-address-space is a mechanism for providing pointer transparency between processes. Sharing a buffer is nearly as simple as passing out its address.
+* Single-address-space is a mechanism for providing pointer transparency between processes. Sharing a buffer is nearly as simple as passing out its address. Even though single-address-space is not a basic requirement and may be seen as an imposed policy decision, it does provide mechanism for efficient data passing between protection domains. This is important for modern media-rich communications.
 
 * IPC is a mechanism providing secure interaction between processes.
 
@@ -17,6 +17,8 @@ Exokernel's distinctive trait is that it provides mechanisms but not policies. V
 ### Scheduling
 
 Scheduling can be viewed as the process of multiplexing the CPU resource between computational tasks. The schedulable entity of an operating system often places constraints both on the scheduling algorithms which may be employed and the functionality provided to the application. The recent gain in popularity of multi-threaded programming due to languages such as Modula-3 [Nelson 91] has led many operating system designers to provide kernel-level thread support mechanisms [Accetta 86, Rozier 90]. The kernel therefore schedules threads rather than processes. Whilst this reduces the functionality required in applications and usually results in more efficient processor context-switches, the necessary thread scheduling policy decisions must also be migrated into the kernel. As pointed out in [Barham 96], this is highly undesirable.
+
+The desire to move such decisions out of the kernel make interesting variants where actual scheduling is performed by the user-level domain scheduler upon an **upcall** from the kernel. TBD
 
 ## Real Time
 
