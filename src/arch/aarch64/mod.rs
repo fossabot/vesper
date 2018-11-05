@@ -38,7 +38,7 @@ pub fn read_translation_table_base() -> PhysicalAddress {
 }
 
 pub fn read_cpu_id() -> u8 {
-    let mut id: u8;
+    let id: u8;
     unsafe {
         asm!("mrs $0, mpidr_el1" : "=r"(id) ::: "volatile");
     }
@@ -198,7 +198,7 @@ fn setup_paging() {
         read_mair(),
     );
 
-    let bcm2837_mem_map: [MemMapRegion; 2] = [
+    let _bcm2837_mem_map: [MemMapRegion; 2] = [
         MemMapRegion {
             virt: 0x0000_0000,
             phys: 0x0000_0000,
