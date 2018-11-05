@@ -12,6 +12,7 @@ categories = ["no-std"]
 
 [features]
 unstable = []
+realtime = []
 
 #[lib]
 #name = "nucleus"
