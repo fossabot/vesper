@@ -1,11 +1,9 @@
 #![no_std]
 #![no_main]
 #![feature(asm)]
-#![feature(used)]
 #![feature(const_fn)]
 #![feature(lang_items)]
 // #![feature(repr_align)]
-#![feature(attr_literals)]
 #![feature(ptr_internals)] // temp
 #![feature(core_intrinsics)]
 #![doc(html_root_url = "https://docs.metta.systems/")]
@@ -22,6 +20,7 @@ extern crate bitflags;
 extern crate multiboot2;
 extern crate rlibc;
 
+use core::panic::PanicInfo;
 #[macro_use]
 pub mod arch;
 pub use arch::*;
@@ -36,9 +35,9 @@ pub use arch::*;
 #[no_mangle]
 pub extern "C" fn eh_personality() {}
 
-#[lang = "panic_fmt"]
+#[lang = "panic_impl"]
 #[no_mangle]
-pub extern "C" fn panic_fmt() -> ! {
+pub extern fn panic_impl(_info: &PanicInfo) -> ! {
     // @todo rect() + drawtext("PANIC")?
     loop {}
 }
