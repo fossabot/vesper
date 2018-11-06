@@ -20,7 +20,7 @@ realtime = []
 #crate-type = ["staticlib"]
 
 [build-dependencies]
-maplit = "0.1.3"
+cc = "1.0"
 
 [dependencies]
 rlibc = "1.0.0"
