@@ -27,7 +27,11 @@ rlibc = "1.0.0"
 bitflags = "1.0.1"
 multiboot2 = "0.3.2"
 
+[profile.dev]
+panic = "abort"
+
 [profile.release]
+panic = "abort"
 debug = true
 lto = true
 

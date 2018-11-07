@@ -36,13 +36,8 @@ use platform::display::Size2d;
 // Actual interfaces to call these syscalls are in vesper-user (similar to libsel4)
 // pub mod vesper; -- exported from vesper-user
 
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn eh_personality() {}
-
-#[lang = "panic_impl"]
-#[no_mangle]
-pub extern fn panic_impl(_info: &PanicInfo) -> ! {
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
     // @todo rect() + drawtext("PANIC")?
     loop {}
 }
