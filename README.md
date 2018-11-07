@@ -43,7 +43,7 @@ cp target/aarch64-vesper-metta/debug/vesper.bin /Volumes/boot/vesper
 kernel=vesper
 arm_64bit=1
 
-# To run in qemu, `brew install --HEAD qemu` and
+# To run in qemu, `brew install qemu --HEAD --with-gtk+3 --with-sdl2 --with-libusb` and
 xargo run --target=aarch64-vesper-metta
 ```
 
