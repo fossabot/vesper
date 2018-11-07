@@ -1,8 +1,0 @@
-[target.x86_64-vesper-metta.dependencies]
-alloc = {}
-[target.aarch64-vesper-metta.dependencies]
-alloc = {}
-[target.arm-vesper-metta.dependencies]
-alloc = {}
-[target.i686-vesper-metta.dependencies]
-alloc = {}
