@@ -9,6 +9,7 @@ readme = "README.md"
 license = "BSL-1.0"
 build = "build.rs"
 categories = ["no-std"]
+publish = false
 
 [features]
 unstable = []
