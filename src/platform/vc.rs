@@ -1,6 +1,6 @@
-use platform::display::{Display, CHARSIZE_X, CHARSIZE_Y, Size2d};
+use platform::display::{Display, Size2d, CHARSIZE_X, CHARSIZE_Y};
+use platform::mailbox::{Channel, Mailbox};
 use platform::rpi3::bus2phys;
-use platform::mailbox::{Mailbox, Channel};
 
 // bufsize
 // code
@@ -63,7 +63,10 @@ impl VC {
 
         let fb_info: GpuFb = GpuFb::init(size);
 
-        Mailbox::call(Channel::Framebuffer as u8, &fb_info.width as *const u32 as *const u8)?;
+        Mailbox::call(
+            Channel::Framebuffer as u8,
+            &fb_info.width as *const u32 as *const u8,
+        )?;
 
         Some(Display::new(
             bus2phys(fb_info.pointer),

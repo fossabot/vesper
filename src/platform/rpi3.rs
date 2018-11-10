@@ -17,4 +17,4 @@ pub fn bus2phys(address: u32) -> u32 {
 }
 
 pub const PERIPHERAL_BASE: u32 = phys2virt(0x3F00_0000); // Base address for all peripherals
-// @todo BcmHost::get_peripheral_address()
+                                                         // @todo BcmHost::get_peripheral_address()

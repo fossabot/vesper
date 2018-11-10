@@ -1,7 +1,7 @@
 use arch::*;
-use platform::rpi3::{phys2bus, PERIPHERAL_BASE};
 use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
-use core::intrinsics::volatile_store; // core equivalent of std::ptr::write_volatile
+use core::intrinsics::volatile_store;
+use platform::rpi3::{phys2bus, PERIPHERAL_BASE}; // core equivalent of std::ptr::write_volatile
 
 pub struct Mailbox;
 

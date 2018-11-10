@@ -7,7 +7,6 @@
 #![feature(ptr_internals)] // temp
 #![feature(core_intrinsics)]
 #![doc(html_root_url = "https://docs.metta.systems/")]
-
 #![allow(dead_code)]
 #![allow(unused_assignments)]
 
@@ -27,8 +26,7 @@ pub mod arch;
 pub use arch::*;
 pub mod platform;
 
-use platform::vc::VC;
-use platform::display::Size2d;
+use platform::{display::Size2d, vc::VC};
 
 // User-facing kernel parts - syscalls and capability invocations.
 // pub mod vesper; -- no mod exported, because available through syscall interface
@@ -54,8 +52,8 @@ impl RGB {
 // arch crate is responsible for calling this
 pub fn kmain() -> ! {
     if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
-        display.rect(100, 100, 200, 200, RGB::rgb(255,255,255).0);
-        display.draw_text(50, 50, "Hello world!", RGB::rgb(0,0,255).0);
+        display.rect(100, 100, 200, 200, RGB::rgb(255, 255, 255).0);
+        display.draw_text(50, 50, "Hello world!", RGB::rgb(0, 0, 255).0);
         // display.draw_text(50, 150, core::fmt("Display width {}", display.width), RGB::rgb(255,0,0).0);
     }
 

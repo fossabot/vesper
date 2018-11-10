@@ -55,13 +55,14 @@ static CHAR_ARRAY: [u64; 95] = [
 ];
 
 impl Display {
-    pub fn new(base: u32,
-           size: u32,
-           pitch: u32,
-           max_x: u32,
-           max_y: u32,
-           width: u32,
-           height: u32,
+    pub fn new(
+        base: u32,
+        size: u32,
+        pitch: u32,
+        max_x: u32,
+        max_y: u32,
+        width: u32,
+        height: u32,
     ) -> Self {
         Display {
             base,
@@ -75,8 +76,9 @@ impl Display {
     }
 
     pub fn putpixel(&mut self, x: u16, y: u16, color: u32) {
-        let f = |v: u32, chan: u16| {
-            unsafe { *(self.base as *mut u8).offset((y as u32 * self.pitch + x as u32 * 3 + chan as u32) as isize) = v as u8; }
+        let f = |v: u32, chan: u16| unsafe {
+            *(self.base as *mut u8)
+                .offset((y as u32 * self.pitch + x as u32 * 3 + chan as u32) as isize) = v as u8;
         };
 
         f(color & 0xff, 0);
@@ -98,7 +100,7 @@ impl Display {
             // Take an 8 bit slice from each array value.
             for my_char in text.as_bytes() {
                 if (*my_char as isize - 0x20 > 95) || (*my_char as isize - 0x20 < 0) {
-                    return;// Err("Character not in font.");
+                    return; // Err("Character not in font.");
                 }
 
                 let mut myval = CHAR_ARRAY[*my_char as usize - 0x20];
