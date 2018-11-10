@@ -28,6 +28,9 @@ fn main() {
     };
     eprintln!("Triple {}", target);
 
+    // @todo match on (CARGO_CFG_TARGET_ARCH, CARGO_CFG_TARGET_OS, CARGO_CFG_TARGET_FAMILY) instead
+    // It will be `(aarch64, none, metta)` for example.
+
     if target == "i686-vesper-metta" {
         build_libboot("x86", "i686-unknown-linux-gnu");
         println!("cargo:rustc-link-lib=static=x86");
