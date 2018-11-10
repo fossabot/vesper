@@ -1,7 +1,7 @@
 [target.aarch64-vesper-metta]
 runner=".cargo/runscript.sh"
-rustflags = [
-    "-C", "link-arg=-Tlinker/aarch64.ld",
-    "-Z", "thinlto=no",
-    "-Z", "verbose",
-]
+#rustflags = [
+##    "-C", "link-arg=-Tlinker/aarch64.ld",
+#    "-Z", "thinlto=no",
+#    "-Z", "verbose",
+#]
