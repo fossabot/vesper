@@ -8,6 +8,9 @@ pub use self::memory::{PhysicalAddress, VirtualAddress};
 /// and passes control to the kernel boot function kmain().
 #[no_mangle]
 pub unsafe extern "C" fn karch_start() -> ! {
+    // Set sp to 0x80000 (just before kernel start)
+    asm!("orr sp, xzr, #0x80000" :::: "volatile");
+
     if read_cpu_id() != 0 {
         endless_sleep();
     }

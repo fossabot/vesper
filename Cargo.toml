@@ -8,7 +8,7 @@ homepage = "https://github.com/metta-systems/vesper"
 repository = "https://github.com/metta-systems/vesper"
 readme = "README.md"
 license = "BSL-1.0"
-build = "build.rs"
+#build = "build.rs"
 categories = ["no-std", "embedded", "os"]
 publish = false
 
@@ -21,8 +21,8 @@ realtime = []
 #path = "src/lib.rs"
 #crate-type = ["staticlib"]
 
-[build-dependencies]
-cc = "1.0"
+#[build-dependencies]
+#cc = "1.0"
 
 [dependencies]
 rlibc = "1.0.0"

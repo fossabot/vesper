@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(karch_start)
 OUTPUT_ARCH(aarch64)
 /*OUTPUT_FORMAT(binary) Cannot change output format whilst linking AArch64 binaries.*/
 
@@ -6,7 +6,7 @@ START_ADDRESS = 0x80000; /* AArch64 boot address is 0x80000 */
 
 SECTIONS {
     .text START_ADDRESS : AT(START_ADDRESS) {
-        *(.entry)
+        *(.text.karch_start)
         *(.text*)
     }
 

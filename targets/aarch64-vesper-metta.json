@@ -11,7 +11,8 @@
   "linker": "rust-lld",
   "pre-link-args": {
     "ld.lld": [
-      "--script=linker/aarch64.ld"
+      "--script=linker/aarch64.ld",
+      "--print-gc-sections"
     ]
   },
   "disable-redzone": true,
