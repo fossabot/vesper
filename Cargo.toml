@@ -38,3 +38,7 @@ lto = true
 
 [package.metadata.cargo-xbuild]
 memcpy = true
+
+[package.metadata.bootimage]
+default-target = "targets/aarch64-vesper-metta.json"
+#run-command = ".cargo/runscript.sh"
