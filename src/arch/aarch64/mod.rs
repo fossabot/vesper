@@ -104,7 +104,7 @@ pub fn write_ttbr_tcr_mair(el: u8, base: PhysicalAddress, tcr: u64, attr: u64) {
                 msr tcr_el3, $1
                 msr mair_el3, $2" :: "r"(base), "r"(tcr), "r"(attr) : "memory" : "volatile");
         },
-        _ => loop {},
+        _ => endless_sleep(),
     }
     unsafe {
         asm!("isb" :::: "volatile");

@@ -37,7 +37,7 @@ use platform::{display::Size2d, vc::VC};
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     // @todo rect() + drawtext("PANIC")?
-    loop {}
+    endless_sleep();
 }
 
 struct RGB(u32);
@@ -57,5 +57,5 @@ pub fn kmain() -> ! {
         // display.draw_text(50, 150, core::fmt("Display width {}", display.width), RGB::rgb(255,0,0).0);
     }
 
-    loop {}
+    endless_sleep();
 }
