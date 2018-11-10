@@ -1,9 +1,9 @@
 // mod arch::aarch64::memory
 
-mod area_frame_allocator;
+//mod area_frame_allocator;
 mod paging;
 
-pub use self::area_frame_allocator::AreaFrameAllocator;
+//pub use self::area_frame_allocator::AreaFrameAllocator;
 
 pub type PhysicalAddress = usize;
 pub type VirtualAddress = usize;
