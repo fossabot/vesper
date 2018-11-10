@@ -34,7 +34,7 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
-debug = true
+debug = false
 lto = true
 
 [package.metadata.cargo-xbuild]
