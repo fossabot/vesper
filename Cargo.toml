@@ -8,7 +8,7 @@ repository = "https://github.com/metta-systems/vesper"
 readme = "README.md"
 license = "BSL-1.0"
 build = "build.rs"
-categories = ["no-std"]
+categories = ["no-std", "embedded", "os"]
 publish = false
 
 [features]
