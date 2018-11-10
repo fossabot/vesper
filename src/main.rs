@@ -17,7 +17,6 @@ use architecture_not_supported_sorry;
 
 #[macro_use]
 extern crate bitflags;
-extern crate multiboot2;
 extern crate rlibc;
 
 use core::panic::PanicInfo;
