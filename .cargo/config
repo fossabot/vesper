@@ -2,5 +2,6 @@
 runner=".cargo/runscript.sh"
 rustflags = [
     "-Z", "thinlto=no",
-    "-Z", "verbose"
+    "-Z", "verbose",
+    "-Z", "pre-link-arg=--print-gc-sections"
 ]
