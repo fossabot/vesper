@@ -69,6 +69,12 @@ int main()
 	selector.SetGPIOFunction(23, GPIO_ALT_FUNCTION_4);
 	selector.SetGPIOFunction(24, GPIO_ALT_FUNCTION_4);
 
+	// @todo Convert this into config.txt gpio= setting list, should be easier and VC will do this
+	// setup for us while booting.
+	// e.g. gpio=22=alt4
+	// gpio=4=alt5
+	// etc
+
 	printf("Successfully enabled JTAG pins. You can start debugging now.\n");
 
 	return 0;
