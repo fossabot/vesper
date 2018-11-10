@@ -11,4 +11,14 @@ These are very much based on Robigalia's [sel4-targets](https://gitlab.com/robig
 
 ## Status
 
-Complete for x86. Untested for ARM.
+Complete for aarch64. Untested for anything else.
+
+## Generating target specifications:
+
+See [description in rust docs](https://doc.rust-lang.org/rustc/targets/custom.html).
+
+To generate a target specification json template, run
+
+```
+rustc +nightly -Z unstable-options --target=wasm32-unknown-unknown --print target-spec-json
+```
