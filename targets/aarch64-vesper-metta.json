@@ -1,38 +1,21 @@
 {
-  "abi-blacklist": [
-    "stdcall",
-    "fastcall",
-    "vectorcall",
-    "thiscall",
-    "win64",
-    "sysv64"
-  ],
-  "arch": "aarch64",
-  "crt-static-default": true,
-  "crt-static-respected": true,
+  "llvm-target": "aarch64-unknown-none",
   "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
-  "dynamic-linking": true,
-  "env": "metta",
+  "arch": "aarch64",
+  "os": "vesper",
+  "vendor": "metta",
+  "env": "",
   "executables": true,
-  "has-elf-tls": true,
-  "has-rpath": true,
+  "panic-strategy": "abort",
   "linker-flavor": "ld.lld",
   "linker": "rust-lld",
-  "llvm-target": "aarch64-unknown-linux-musl",
-  "max-atomic-width": 128,
-  "os": "none",
-  "panic-strategy": "abort",
-  "position-independent-executables": true,
-  "no-default-libraries": true,
   "pre-link-args": {
-    "ld": [
-      "-nodefaultlibs", "-nostdlib"
+    "ld.lld": [
+      "--script=linker/aarch64.ld"
     ]
   },
-  "relro-level": "full",
-  "target-c-int-width": "32",
+  "disable-redzone": true,
   "target-endian": "little",
-  "target-family": "metta",
-  "target-pointer-width": "64",
-  "vendor": ""
+  "target-c-int-width": "32",
+  "target-pointer-width": "64"
 }
