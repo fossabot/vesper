@@ -2,7 +2,7 @@
 .section .entry, "x"
 _start:
     orr sp, xzr, #0x80000 // Set sp to 0x80000 (just before kernel start)
-    b karch_start
+    b =karch_start
 
 // Crazy initial pagetables here
 // Identity map first Gigabyte minus 16 meg for physical devices bus

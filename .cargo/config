@@ -1,8 +1,6 @@
 [target.aarch64-vesper-metta]
 runner=".cargo/runscript.sh"
 rustflags = [
-    "-Z", "linker-flavor=ld",
-    "-C", "linker=aarch64-unknown-linux-musl-ld",
     "-C", "link-arg=-Tlinker/aarch64.ld",
     "-Z", "thinlto=no",
     "-Z", "verbose",
