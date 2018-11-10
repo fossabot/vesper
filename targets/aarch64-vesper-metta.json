@@ -7,12 +7,11 @@
   "env": "",
   "executables": true,
   "panic-strategy": "abort",
-  "linker-flavor": "ld",
-  "linker-is-gnu": true,
-  "linker": "aarch64-unknown-linux-musl-ld",
+  "linker-flavor": "ld.lld",
+  "linker": "rust-lld",
   "pre-link-args": {
-    "ld": [
-      "-Tlinker/aarch64.ld"
+    "ld.lld": [
+      "--script=linker/aarch64.ld"
     ]
   },
   "disable-redzone": true,
