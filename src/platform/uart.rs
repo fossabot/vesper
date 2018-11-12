@@ -1,35 +1,6 @@
 use arch::*;
 use platform::rpi3::{phys2bus, PERIPHERAL_BASE}; // core equivalent of std::ptr::write_volatile
 
-const GPIO_BASE: u32 = PERIPHERAL_BASE + 0x20_0000;
-
-// The offsets for reach register.
-// From https://wiki.osdev.org/Raspberry_Pi_Bare_Bones
-
-const GPFSEL0: u32 = GPIO_BASE + 0x00;
-const GPFSEL1: u32 = GPIO_BASE + 0x04;
-const GPFSEL2: u32 = GPIO_BASE + 0x08;
-const GPFSEL3: u32 = GPIO_BASE + 0x0C;
-const GPFSEL4: u32 = GPIO_BASE + 0x10;
-const GPFSEL5: u32 = GPIO_BASE + 0x14;
-const GPSET0: u32 = GPIO_BASE + 0x1C;
-const GPSET1: u32 = GPIO_BASE + 0x20;
-const GPCLR0: u32 = GPIO_BASE + 0x28;
-const GPLEV0: u32 = GPIO_BASE + 0x34;
-const GPLEV1: u32 = GPIO_BASE + 0x38;
-const GPEDS0: u32 = GPIO_BASE + 0x40;
-const GPEDS1: u32 = GPIO_BASE + 0x44;
-const GPHEN0: u32 = GPIO_BASE + 0x64;
-const GPHEN1: u32 = GPIO_BASE + 0x68;
-
-// Controls actuation of pull up/down to ALL GPIO pins.
-const GPPUD: u32 = GPIO_BASE + 0x94;
-
-// Controls actuation of pull up/down for specific GPIO pin.
-const GPPUDCLK0: u32 = GPIO_BASE + 0x98;
-
-const GPPUDCLK1: u32 = GPIO_BASE + 0x9C;
-
 // The base address for UART.
 const UART0_BASE: u32 = PERIPHERAL_BASE + 0x20_1000;
 
