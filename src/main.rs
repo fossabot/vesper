@@ -52,8 +52,12 @@ impl RGB {
 pub fn kmain() -> ! {
     if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
         display.rect(100, 100, 200, 200, RGB::rgb(255, 255, 255).0);
-        display.draw_text(50, 50, "Hello world!", RGB::rgb(0, 0, 255).0);
+        display.draw_text(50, 50, "Hello there!", RGB::rgb(128, 192, 255).0);
         // display.draw_text(50, 150, core::fmt("Display width {}", display.width), RGB::rgb(255,0,0).0);
+
+        display.draw_text(150, 50, "RED", RGB::rgb(255, 0, 0).0);
+        display.draw_text(160, 60, "GREEN", RGB::rgb(0, 255, 0).0);
+        display.draw_text(170, 70, "BLUE", RGB::rgb(0, 0, 255).0);
     }
 
     endless_sleep();

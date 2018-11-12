@@ -7,6 +7,12 @@ pub struct Size2d {
     pub y: u32,
 }
 
+#[derive(PartialEq)]
+pub enum PixelOrder {
+    BGR,
+    RGB,
+}
+
 pub struct Display {
     base: u32,
     size: u32,
@@ -15,6 +21,7 @@ pub struct Display {
     max_y: u32,
     width: u32,
     height: u32,
+    order: PixelOrder,
 }
 
 // https://github.com/david-griffith/rust-bitmap/blob/master/src/lib.rs
@@ -63,6 +70,7 @@ impl Display {
         max_y: u32,
         width: u32,
         height: u32,
+        order: PixelOrder,
     ) -> Self {
         Display {
             base,
@@ -72,13 +80,21 @@ impl Display {
             max_y,
             width,
             height,
+            order,
         }
     }
 
     pub fn putpixel(&mut self, x: u16, y: u16, color: u32) {
+        let c = |chan: u16| {
+            if self.order == PixelOrder::BGR {
+                2 - chan
+            } else {
+                chan
+            }
+        };
         let f = |v: u32, chan: u16| unsafe {
             *(self.base as *mut u8)
-                .offset((y as u32 * self.pitch + x as u32 * 3 + chan as u32) as isize) = v as u8;
+                .offset((y as u32 * self.pitch + x as u32 * 3 + c(chan) as u32) as isize) = v as u8;
         };
 
         f(color & 0xff, 0);

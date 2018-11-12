@@ -1,5 +1,5 @@
-use platform::display::{Display, Size2d, CHARSIZE_X, CHARSIZE_Y};
-use platform::mailbox::{Channel, Mailbox};
+use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
+use platform::mailbox::{Channel, Mailbox, Tag, MAILBOX_REQ_CODE};
 use platform::rpi3::bus2phys;
 
 // bufsize
@@ -35,6 +35,29 @@ struct GpuFb {
     size: u32,
 }
 
+#[repr(align(16))]
+struct SetPixelOrder {
+    total: u32,
+    req: u32,
+    tag: u32,
+    bufsz: u32,
+    reqsz: u32,
+    param: u32,
+}
+
+impl SetPixelOrder {
+    fn init() -> Self {
+        SetPixelOrder {
+            total: 24u32,
+            req: MAILBOX_REQ_CODE,
+            tag: Tag::SetPixelOrder as u32,
+            bufsz: 4,
+            reqsz: 4,
+            param: 0, // 0 - BGR, 1 - RGB
+        }
+    }
+}
+
 impl GpuFb {
     fn init(size: Size2d) -> GpuFb {
         GpuFb {
@@ -68,6 +91,13 @@ impl VC {
             &fb_info.width as *const u32 as *const u8,
         )?;
 
+        let pixel_order = SetPixelOrder::init();
+
+        Mailbox::call(
+            Channel::PropertyTagsArmToVc as u8,
+            &pixel_order.total as *const u32 as *const u8,
+        )?;
+
         Some(Display::new(
             bus2phys(fb_info.pointer),
             fb_info.size,
@@ -76,6 +106,7 @@ impl VC {
             max_y,
             fb_info.width,
             fb_info.height,
+            PixelOrder::BGR,
         ))
     }
     /*
