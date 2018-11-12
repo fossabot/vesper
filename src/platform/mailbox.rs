@@ -19,8 +19,6 @@ const MAILBOX0READ: u32 = MAIL_BASE; // This is Mailbox0 read for ARM, can't wri
 const MAILBOX0STATUS: u32 = MAIL_BASE + 0x18;
 const MAILBOX1WRITE: u32 = MAIL_BASE + 0x20; // This is Mailbox1 write for ARM, can't read
 
-// const MAILBOX_PHYSADDR: u32 = 0x2000b880; // verified: u-boot arch/arm/mach-bcm283x/include/mach/mbox.h
-
 /* Lower 4-bits are channel ID */
 const CHANNEL_MASK: u8 = 0xf;
 
