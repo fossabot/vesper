@@ -14,7 +14,7 @@ const MAIL_BASE: u32 = PERIPHERAL_BASE + 0xb880;
 //
 // The ARM should never write Mailbox 0 or read Mailbox 1.
 
-// Identity mapped first 1Gb by uboot
+// Identity mapped first 1Gb by u-boot
 const MAILBOX0READ: u32 = MAIL_BASE; // This is Mailbox0 read for ARM, can't write
 const MAILBOX0STATUS: u32 = MAIL_BASE + 0x18;
 const MAILBOX0WRITE: u32 = MAIL_BASE + 0x20; // This is Mailbox1 write for ARM, can't read
@@ -33,7 +33,7 @@ pub enum Channel {
     Power = 0,
     Framebuffer = 1,
     VirtualUart = 2,
-    Vchiq = 3,
+    VChiq = 3,
     Leds = 4,
     Buttons = 5,
     TouchScreen = 6,
