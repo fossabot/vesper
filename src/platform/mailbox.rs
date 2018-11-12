@@ -1,6 +1,4 @@
 use arch::*;
-use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
-use core::intrinsics::volatile_store;
 use platform::rpi3::{phys2bus, PERIPHERAL_BASE}; // core equivalent of std::ptr::write_volatile
 
 pub struct Mailbox;
@@ -22,14 +20,6 @@ const MAILBOX0STATUS: u32 = MAIL_BASE + 0x18;
 const MAILBOX0WRITE: u32 = MAIL_BASE + 0x20; // This is Mailbox1 write for ARM, can't read
 
 // const MAILBOX_PHYSADDR: u32 = 0x2000b880; // verified: u-boot arch/arm/mach-bcm283x/include/mach/mbox.h
-
-fn mmio_write(reg: u32, val: u32) {
-    unsafe { volatile_store(reg as *mut u32, val) }
-}
-
-fn mmio_read(reg: u32) -> u32 {
-    unsafe { volatile_load(reg as *const u32) }
-}
 
 /* Lower 4-bits are channel ID */
 const CHANNEL_MASK: u8 = 0xf;

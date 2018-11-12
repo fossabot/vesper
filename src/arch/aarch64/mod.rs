@@ -1,4 +1,6 @@
 // mod arch::aarch64
+use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
+use core::intrinsics::volatile_store;
 
 mod memory;
 pub use self::memory::{PhysicalAddress, VirtualAddress};
@@ -113,6 +115,15 @@ pub fn write_ttbr_tcr_mair(el: u8, base: PhysicalAddress, tcr: u64, attr: u64) {
         asm!("isb" :::: "volatile");
     }
 }
+
+pub fn mmio_write(reg: u32, val: u32) {
+    unsafe { volatile_store(reg as *mut u32, val) }
+}
+
+pub fn mmio_read(reg: u32) -> u32 {
+    unsafe { volatile_load(reg as *const u32) }
+}
+
 
 // Identity-map things for now.
 //
