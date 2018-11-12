@@ -23,7 +23,9 @@ realtime = []
 [dependencies]
 rlibc = "1.0.0"
 bitflags = "1.0.1"
+register = "0.2"
 #multiboot2 = "0.3.2"
+#embedded-serial = "0.5.0"
 
 [profile.dev]
 panic = "abort"
