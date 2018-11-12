@@ -558,6 +558,7 @@ impl Mailbox {
     }
 
     pub fn call(channel: u8, physical_base: *const u8) -> Option<u32> {
+        assert_eq!(physical_base as usize & 0xf, 0);
         Self::write(channel, physical_base);
         Self::read(channel)
     }
