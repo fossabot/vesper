@@ -37,26 +37,19 @@ pub enum Channel {
     Leds = 4,
     Buttons = 5,
     TouchScreen = 6,
+    // Count = 7,
     PropertyTagsArmToVc = 8,
     PropertyTagsVcToArm = 9,
 }
 
-const MAILBOX_REQ_CODE: u32 = 0;
+pub const MAILBOX_REQ_CODE: u32 = 0;
 const MAILBOX_RESP_CODE_SUCCESS: u32 = 0x8000_0000;
 
 /* When responding, the VC sets this bit in val_len to indicate a response */
 const MAILBOX_TAG_VAL_LEN_RESPONSE: u32 = 0x8000_0000;
 
-// struct MailboxRegs {
-//     read: u32,
-//     rsvd0: [u32; 5],
-//     status: u32,
-//     config: u32,
-//     write: u32,
-// }
-
 #[allow(dead_code)]
-enum Tag {
+pub enum Tag {
     GetBoardRev = 0x0001_0002,
     GetMacAddress = 0x0001_0003,
     GetBoardSerial = 0x0001_0004,
@@ -532,7 +525,6 @@ impl Mailbox {
     }
 
     pub fn read(channel: u8) -> Option<u32> {
-        // let mailbox = MAILBOX_PHYSADDR as *mut MailboxRegs;
         let mut count: u32 = 0;
 
         loop {
