@@ -9,8 +9,8 @@ pub struct Size2d {
 
 #[derive(PartialEq)]
 pub enum PixelOrder {
-    BGR,
-    RGB,
+    BGR = 0,
+    RGB = 1,
 }
 
 pub struct Display {
