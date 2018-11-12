@@ -17,6 +17,8 @@ use architecture_not_supported_sorry;
 
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
+extern crate register;
 extern crate rlibc;
 
 use core::panic::PanicInfo;
@@ -25,7 +27,7 @@ pub mod arch;
 pub use arch::*;
 pub mod platform;
 
-use platform::{display::Size2d, vc::VC};
+use platform::{display::Size2d, vc::VC, uart::MiniUart};
 
 // User-facing kernel parts - syscalls and capability invocations.
 // pub mod vesper; -- no mod exported, because available through syscall interface
@@ -50,7 +52,11 @@ impl RGB {
 // Kernel entry point
 // arch crate is responsible for calling this
 pub fn kmain() -> ! {
-    if let Some(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
+    let uart = MiniUart::new();
+    uart.init();
+    uart.puts("Hey there, mini uart talking!");
+
+    if let Ok(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
         display.rect(100, 100, 200, 200, RGB::rgb(255, 255, 255).0);
         display.draw_text(50, 50, "Hello there!", RGB::rgb(128, 192, 255).0);
         // display.draw_text(50, 150, core::fmt("Display width {}", display.width), RGB::rgb(255,0,0).0);
@@ -60,5 +66,6 @@ pub fn kmain() -> ! {
         display.draw_text(170, 70, "BLUE", RGB::rgb(0, 0, 255).0);
     }
 
+    uart.puts("Bye, going to sleep now");
     endless_sleep();
 }
