@@ -116,10 +116,28 @@ pub fn write_ttbr_tcr_mair(el: u8, base: PhysicalAddress, tcr: u64, attr: u64) {
     }
 }
 
+pub fn loop_delay(rounds: u32) {
+    for _ in 0..rounds {
+        unsafe { asm!("nop" :::: "volatile") };
+    }
+}
+
+pub fn loop_until<F: Fn()->bool>(f: F) {
+    loop {
+        if f() {
+            break;
+        }
+
+        unsafe { asm!("nop" :::: "volatile") };
+    }
+}
+
+// Not necessary since we have register crate now?
 pub fn mmio_write(reg: u32, val: u32) {
     unsafe { volatile_store(reg as *mut u32, val) }
 }
 
+// Not necessary since we have register crate now?
 pub fn mmio_read(reg: u32) -> u32 {
     unsafe { volatile_load(reg as *const u32) }
 }
