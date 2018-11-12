@@ -25,6 +25,7 @@ pub struct Display {
 }
 
 // https://github.com/david-griffith/rust-bitmap/blob/master/src/lib.rs
+#[cfg_attr(rustfmt, rustfmt_skip)]
 static CHAR_ARRAY: [u64; 95] = [
     0x0000000000000000,                                             // space
     0x183c3c1818001800, 0x3636000000000000, 0x36367f367f363600,     // ! " #
