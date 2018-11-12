@@ -17,7 +17,7 @@ const MAIL_BASE: u32 = PERIPHERAL_BASE + 0xb880;
 // Identity mapped first 1Gb by u-boot
 const MAILBOX0READ: u32 = MAIL_BASE; // This is Mailbox0 read for ARM, can't write
 const MAILBOX0STATUS: u32 = MAIL_BASE + 0x18;
-const MAILBOX0WRITE: u32 = MAIL_BASE + 0x20; // This is Mailbox1 write for ARM, can't read
+const MAILBOX1WRITE: u32 = MAIL_BASE + 0x20; // This is Mailbox1 write for ARM, can't read
 
 // const MAILBOX_PHYSADDR: u32 = 0x2000b880; // verified: u-boot arch/arm/mach-bcm283x/include/mach/mbox.h
 
@@ -526,7 +526,7 @@ impl Mailbox {
         }
         dmb();
         mmio_write(
-            MAILBOX0WRITE,
+            MAILBOX1WRITE,
             phys2bus(physical_base as u32 & 0xFFFF_FFF0) | u32::from(channel),
         );
     }
