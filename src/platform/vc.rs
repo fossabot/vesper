@@ -1,112 +1,91 @@
 use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
-use platform::mailbox::{Channel, Mailbox, Tag, MAILBOX_REQ_CODE};
+use platform::mailbox::{self, channel, Mailbox, tag};
 use platform::rpi3::bus2phys;
-
-// bufsize
-// code
-// ....
-// end tag
-
-// tag code
-// val bufsize
-// val size
-// ...data buf
-
-//#[repr(align(16))]
-//struct Mbox([u32; 22]);
-//
-//impl Mbox {
-//    fn new() -> Mbox {
-//        Mbox { 0: [0; 22] }
-//    }
-//}
-
-#[repr(align(16))]
-struct GpuFb {
-    width: u32,
-    height: u32,
-    vwidth: u32,
-    vheight: u32,
-    pitch: u32,
-    depth: u32,
-    x_offset: u32,
-    y_offset: u32,
-    pointer: u32,
-    size: u32,
-}
-
-#[repr(align(16))]
-struct SetPixelOrder {
-    total: u32,
-    req: u32,
-    tag: u32,
-    bufsz: u32,
-    reqsz: u32,
-    param: u32,
-}
-
-impl SetPixelOrder {
-    fn init() -> Self {
-        SetPixelOrder {
-            total: 24u32,
-            req: MAILBOX_REQ_CODE,
-            tag: Tag::SetPixelOrder as u32,
-            bufsz: 4,
-            reqsz: 4,
-            param: 0, // 0 - BGR, 1 - RGB
-        }
-    }
-}
-
-impl GpuFb {
-    fn init(size: Size2d) -> GpuFb {
-        GpuFb {
-            width: size.x,
-            height: size.y,
-            vwidth: size.x,
-            vheight: size.y,
-            pitch: 0u32,
-            depth: 24u32,
-            x_offset: 0u32,
-            y_offset: 0u32,
-            pointer: 0u32,
-            size: 0u32,
-        }
-    }
-}
 
 pub struct VC;
 
+pub enum VcError {
+    MboxError(mailbox::MboxError),
+    FormatError,
+    PixelOrderInvalid,
+}
+
 impl VC {
-    // Use mailbox framebuffer interface to initialize
-    pub fn init_fb(size: Size2d) -> Option<Display> {
+    pub fn init_fb(size: Size2d) -> Result<Display, VcError> {
+        // mailbox
+        let mut mbox = Mailbox::new();
+
+        // From https://github.com/bztsrc/raspi3-tutorial/blob/master/09_framebuffer/lfb.c
+        // @todo macro to `fill_tag(mbox, offset, tag::XX, arg, arg, arg)`
+        mbox.buffer[0] = 35 * 4;
+        mbox.buffer[1] = mailbox::REQUEST;
+
+        mbox.buffer[2] = tag::SetPhysicalWH;
+        mbox.buffer[3] = 8;
+        mbox.buffer[4] = 8;
+        mbox.buffer[5] = size.x; // GpuFb.width
+        mbox.buffer[6] = size.y; // GpuFb.height
+
+        mbox.buffer[7] = tag::SetVirtualWH;
+        mbox.buffer[8] = 8;
+        mbox.buffer[9] = 8;
+        mbox.buffer[10] = size.x; // GpuFb.vwidth
+        mbox.buffer[11] = size.y; // GpuFb.vheight
+
+        mbox.buffer[12] = tag::SetVirtualOffset;
+        mbox.buffer[13] = 8;
+        mbox.buffer[14] = 8;
+        mbox.buffer[15] = 0; // GpuFb.x_offset
+        mbox.buffer[16] = 0; // GpuFb.y_offset
+
+        mbox.buffer[17] = tag::SetDepth;
+        mbox.buffer[18] = 4;
+        mbox.buffer[19] = 4;
+        mbox.buffer[20] = 24; // GpuFb.depth
+
+        mbox.buffer[21] = tag::SetPixelOrder;
+        mbox.buffer[22] = 4;
+        mbox.buffer[23] = 4;
+        mbox.buffer[24] = PixelOrder::RGB as u32;
+
+        mbox.buffer[25] = tag::AllocateBuffer;
+        mbox.buffer[26] = 8;
+        mbox.buffer[27] = 8;
+        mbox.buffer[28] = 4096; // GpuFb.pointer <- 4K aligned
+        mbox.buffer[29] = 0;    // GpuFb.size
+
+        mbox.buffer[30] = tag::GetPitch;
+        mbox.buffer[31] = 4;
+        mbox.buffer[32] = 4;
+        mbox.buffer[33] = 0;    // GpuFb.pitch
+
+        mbox.buffer[34] = tag::End;
+
+        mbox.call(channel::PropertyTagsArmToVc).map_err(VcError::MboxError)?;
+
+        if mbox.buffer[20] != 24 || mbox.buffer[28] == 0 {
+            return Err(VcError::FormatError);
+        }
+
         /* Need to set up max_x/max_y before using Display::write */
-        let max_x = size.x / CHARSIZE_X;
-        let max_y = size.y / CHARSIZE_Y;
+        let max_x = mbox.buffer[5] / CHARSIZE_X;
+        let max_y = mbox.buffer[6] / CHARSIZE_Y;
 
-        let fb_info: GpuFb = GpuFb::init(size);
+        let order: PixelOrder = match mbox.buffer[24] {
+            0 => PixelOrder::BGR,
+            1 => PixelOrder::RGB,
+            _ => return Err(VcError::PixelOrderInvalid),
+        };
 
-        Mailbox::call(
-            Channel::Framebuffer as u8,
-            &fb_info.width as *const u32 as *const u8,
-        )?;
-
-        let pixel_order = SetPixelOrder::init();
-
-        Mailbox::call(
-            Channel::PropertyTagsArmToVc as u8,
-            &pixel_order.total as *const u32 as *const u8,
-        )?;
-
-        Some(Display::new(
-            bus2phys(fb_info.pointer),
-            fb_info.size,
-            fb_info.pitch,
+        Ok(Display::new(
+            bus2phys(mbox.buffer[28]),
+            mbox.buffer[29], // size
+            mbox.buffer[33], // pitch
             max_x,
             max_y,
-            fb_info.width,
-            fb_info.height,
-            PixelOrder::BGR,
+            mbox.buffer[5],
+            mbox.buffer[6],
+            order,
         ))
     }
     /*
