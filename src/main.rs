@@ -75,6 +75,10 @@ pub fn kmain() -> ! {
         display.draw_text(170, 70, "BLUE", RGB::rgb(0, 0, 255).0);
     }
 
-    uart.puts("\n######\nBye, going to sleep now\n######");
-    endless_sleep();
+    uart.puts("\n######\nBye, going to sleep now\n######\n\n");
+
+    loop {
+        uart.send(uart.getc());
+    }
+    //    endless_sleep();
 }
