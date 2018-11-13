@@ -9,6 +9,7 @@
 #![doc(html_root_url = "https://docs.metta.systems/")]
 #![allow(dead_code)]
 #![allow(unused_assignments)]
+#![allow(unused_must_use)]
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 use architecture_not_supported_sorry;
