@@ -1,6 +1,6 @@
 use arch::*;
 use core::ops;
-use platform::rpi3::PERIPHERAL_BASE;
+use platform::{display::Size2d, rpi3::PERIPHERAL_BASE, uart::MiniUart};
 use register::mmio::*;
 
 // Public interface to the mailbox
@@ -65,7 +65,7 @@ pub type Result<T> = ::core::result::Result<T, MboxError>;
 #[allow(non_upper_case_globals)]
 pub mod channel {
     pub const Power: u32 = 0;
-    pub const Framebuffer: u32 = 1;
+    pub const FrameBuffer: u32 = 1;
     pub const VirtualUart: u32 = 2;
     pub const VChiq: u32 = 3;
     pub const Leds: u32 = 4;
@@ -76,19 +76,20 @@ pub mod channel {
     pub const PropertyTagsVcToArm: u32 = 9;
 }
 
-// Framebuffer channel supported structure (unused)
+// FrameBuffer channel supported structure - use with channel::FrameBuffer
+#[repr(C)]
 #[repr(align(16))]
-struct GpuFb {
-    width: u32,
-    height: u32,
-    vwidth: u32,
-    vheight: u32,
-    pitch: u32,
-    depth: u32,
-    x_offset: u32,
-    y_offset: u32,
-    pointer: u32,
-    size: u32,
+pub struct GpuFb {
+    pub width: u32,
+    pub height: u32,
+    pub vwidth: u32,
+    pub vheight: u32,
+    pub pitch: u32,
+    pub depth: u32,
+    pub x_offset: u32,
+    pub y_offset: u32,
+    pub pointer: u32,
+    pub size: u32,
 }
 
 pub const REQUEST: u32 = 0;
@@ -100,7 +101,7 @@ mod response {
 }
 
 /* When responding, the VC sets this bit in val_len to indicate a response */
-const MAILBOX_TAG_VAL_LEN_RESPONSE: u32 = 0x8000_0000;
+pub const MAILBOX_TAG_VAL_LEN_RESPONSE: u32 = 0x8000_0000;
 
 #[allow(non_upper_case_globals)]
 pub mod tag {
@@ -147,56 +148,12 @@ pub mod tag {
 
 /*
 
-struct bcm2835_mbox_hdr {
-    u32 buf_size;
-    u32 code;
-};
-
-
-#define BCM2835_MBOX_INIT_HDR(_m_) { \
-        memset((_m_), 0, sizeof(*(_m_))); \
-        (_m_)->hdr.buf_size = sizeof(*(_m_)); \
-        (_m_)->hdr.code = 0; \
-        (_m_)->end_tag = 0; \
-    }
-
-/*
- * A message buffer contains a list of tags. Each tag must also start with
- * a standardized header.
- */
 struct bcm2835_mbox_tag_hdr {
 u32 tag;
 u32 val_buf_size;
 u32 val_len;
 };
 
-#define BCM2835_MBOX_INIT_TAG(_t_, _id_) { \
-(_t_)->tag_hdr.tag = BCM2835_MBOX_TAG_##_id_; \
-(_t_)->tag_hdr.val_buf_size = sizeof((_t_)->body); \
-(_t_)->tag_hdr.val_len = sizeof((_t_)->body.req); \
-}
-
-#define BCM2835_MBOX_INIT_TAG_NO_REQ(_t_, _id_) { \
-(_t_)->tag_hdr.tag = BCM2835_MBOX_TAG_##_id_; \
-(_t_)->tag_hdr.val_buf_size = sizeof((_t_)->body); \
-(_t_)->tag_hdr.val_len = 0; \
-}
-
-/*
- * Below we define the ID and struct for many possible tags. This header only
- * defines individual tag structs, not entire message structs, since in
- * general an arbitrary set of tags may be combined into a single message.
- * Clients of the mbox API are expected to define their own overall message
- * structures by combining the header, a set of tags, and a terminating
- * entry. For example,
- *
- * struct msg {
- *     struct bcm2835_mbox_hdr hdr;
- *     struct bcm2835_mbox_tag_get_arm_mem get_arm_mem;
- *     ... perhaps other tags here ...
- *     u32 end_tag;
- * };
- */
 struct bcm2835_mbox_tag_get_board_rev {
 struct bcm2835_mbox_tag_hdr tag_hdr;
 union {
@@ -548,6 +505,82 @@ impl ops::Deref for Mailbox {
     }
 }
 
+impl ops::Deref for GpuFb {
+    type Target = RegisterBlock;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+fn write(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
+    let mut count: u32 = 0;
+
+    {
+        let uart = MiniUart::new();
+        uart.init();
+        uart.puts("Mailbox::write\n");
+    }
+
+    while regs.STATUS.is_set(STATUS::FULL) {
+        count += 1;
+        if count > (1 << 25) {
+            return Err(MboxError::Timeout);
+        }
+    }
+    dmb();
+    regs.WRITE
+        .set((buf_ptr & !CHANNEL_MASK) | (channel & CHANNEL_MASK));
+    Ok(())
+}
+
+fn read(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
+    let mut count: u32 = 0;
+
+    let uart = MiniUart::new();
+    uart.init();
+    uart.puts("\n######\nMailbox::read\n");
+
+    loop {
+        while regs.STATUS.is_set(STATUS::EMPTY) {
+            count += 1;
+            if count > (1 << 25) {
+                return Err(MboxError::Timeout);
+            }
+        }
+
+        uart.puts("\n######\nMailbox::reading data\n");
+
+        /* Read the data
+         * Data memory barriers as we've switched peripheral
+         */
+        dmb();
+        let data: u32 = regs.READ.get();
+        dmb();
+
+        uart.puts("\n######\nMailbox::data read\n");
+
+        // is it a response to our message?
+        if ((data & CHANNEL_MASK) == channel) && ((data & !CHANNEL_MASK) == buf_ptr) {
+            // is it a valid successful response?
+            return match self.buffer[1] {
+                response::SUCCESS => {
+                    uart.puts("\n######\nMailbox::returning SUCCESS\n");
+                    Ok(())
+                },
+                response::ERROR => {
+                    uart.puts("\n######\nMailbox::returning ResponseError\n");
+                    Err(MboxError::ResponseError)
+                },
+                _ => {
+                    uart.puts("\n######\nMailbox::returning UnknownError\n");
+                    Err(MboxError::UnknownError)
+                },
+            };
+        }
+    }
+}
+
 impl Mailbox {
     pub fn new() -> Mailbox {
         Mailbox { buffer: [0; 36] }
@@ -559,55 +592,50 @@ impl Mailbox {
     }
 
     pub fn write(&self, channel: u32) -> Result<()> {
-        let mut count: u32 = 0;
-
-        while self.STATUS.is_set(STATUS::FULL) {
-            count += 1;
-            if count > (1 << 25) {
-                return Err(MboxError::Timeout);
-            }
-        }
-        dmb();
-        let buf_ptr = self.buffer.as_ptr() as u32;
-        self.WRITE
-            .set((buf_ptr & !CHANNEL_MASK) | (channel & CHANNEL_MASK));
-        Ok(())
+        write(self, self.buffer.as_ptr() as u32, channel)
     }
 
     pub fn read(&self, channel: u32) -> Result<()> {
-        let mut count: u32 = 0;
-
-        loop {
-            while self.STATUS.is_set(STATUS::EMPTY) {
-                count += 1;
-                if count > (1 << 25) {
-                    return Err(MboxError::Timeout);
-                }
-            }
-
-            /* Read the data
-             * Data memory barriers as we've switched peripheral
-             */
-            dmb();
-            let data: u32 = self.READ.get();
-            dmb();
-
-            let buf_ptr = self.buffer.as_ptr() as u32;
-
-            // is it a response to our message?
-            if ((data & CHANNEL_MASK) == channel) && ((data & !CHANNEL_MASK) == buf_ptr) {
-                // is it a valid successful response?
-                return match self.buffer[1] {
-                    response::SUCCESS => Ok(()),
-                    response::ERROR => Err(MboxError::ResponseError),
-                    _ => Err(MboxError::UnknownError),
-                };
-            }
-        }
+        read(self, self.buffer.as_ptr() as u32, channel)
     }
 
     pub fn call(&self, channel: u32) -> Result<()> {
         self.write(channel)?;
         self.read(channel)
+    }
+}
+
+impl GpuFb {
+    pub fn new(size: Size2d, depth: u32) -> GpuFb {
+        GpuFb {
+            width: size.x,
+            height: size.y,
+            vwidth: size.x,
+            vheight: size.y,
+            pitch: 0,
+            depth,
+            x_offset: 0,
+            y_offset: 0,
+            pointer: 4096, // alignment
+            size: 0,
+        }
+    }
+
+    /// Returns a pointer to the register block
+    fn ptr() -> *const RegisterBlock {
+        MAILBOX_BASE as *const _
+    }
+
+    pub fn write(&self) -> Result<()> {
+        write(self, &self.width as *const u32 as u32, channel::FrameBuffer)
+    }
+
+    pub fn read(&self) -> Result<()> {
+        read(self, &self.width as *mut u32 as u32, channel::FrameBuffer)
+    }
+
+    pub fn call(&self) -> Result<()> {
+        self.write()?;
+        self.read()
     }
 }

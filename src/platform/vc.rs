@@ -1,6 +1,6 @@
 use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
-use platform::mailbox::{self, channel, Mailbox, tag};
-use platform::rpi3::bus2phys;
+use platform::mailbox::{self, channel, Mailbox, GpuFb, tag, MAILBOX_TAG_VAL_LEN_RESPONSE};
+use platform::{rpi3::bus2phys, uart::MiniUart};
 
 pub struct VC;
 
@@ -12,6 +12,13 @@ pub enum VcError {
 
 impl VC {
     pub fn init_fb(size: Size2d) -> Result<Display, VcError> {
+        let uart = MiniUart::new();
+        uart.init();
+
+        let fb_init = GpuFb::new(size, 32);
+
+        fb_init.call().map_err(VcError::MboxError)?;
+
         // mailbox
         let mut mbox = Mailbox::new();
 
@@ -20,50 +27,32 @@ impl VC {
         mbox.buffer[0] = 35 * 4;
         mbox.buffer[1] = mailbox::REQUEST;
 
-        mbox.buffer[2] = tag::SetPhysicalWH;
+        mbox.buffer[2] = tag::GetVirtualWH;
         mbox.buffer[3] = 8;
-        mbox.buffer[4] = 8;
-        mbox.buffer[5] = size.x; // GpuFb.width
-        mbox.buffer[6] = size.y; // GpuFb.height
+        mbox.buffer[4] = 0;
+        mbox.buffer[5] = 0; // GpuFb.vwidth
+        mbox.buffer[6] = 0; // GpuFb.vheight
 
-        mbox.buffer[7] = tag::SetVirtualWH;
-        mbox.buffer[8] = 8;
-        mbox.buffer[9] = 8;
-        mbox.buffer[10] = size.x; // GpuFb.vwidth
-        mbox.buffer[11] = size.y; // GpuFb.vheight
+        mbox.buffer[7] = tag::GetPixelOrder;
+        mbox.buffer[8] = 4;
+        mbox.buffer[9] = 0;
+        mbox.buffer[10] = 0; // PixelOrder
 
-        mbox.buffer[12] = tag::SetVirtualOffset;
-        mbox.buffer[13] = 8;
-        mbox.buffer[14] = 8;
-        mbox.buffer[15] = 0; // GpuFb.x_offset
-        mbox.buffer[16] = 0; // GpuFb.y_offset
+        mbox.buffer[11] = tag::GetPitch;
+        mbox.buffer[12] = 4;
+        mbox.buffer[13] = 0;
+        mbox.buffer[14] = 0;    // GpuFb.pitch
 
-        mbox.buffer[17] = tag::SetDepth;
-        mbox.buffer[18] = 4;
-        mbox.buffer[19] = 4;
-        mbox.buffer[20] = 24; // GpuFb.depth
-
-        mbox.buffer[21] = tag::SetPixelOrder;
-        mbox.buffer[22] = 4;
-        mbox.buffer[23] = 4;
-        mbox.buffer[24] = PixelOrder::RGB as u32;
-
-        mbox.buffer[25] = tag::AllocateBuffer;
-        mbox.buffer[26] = 8;
-        mbox.buffer[27] = 8;
-        mbox.buffer[28] = 4096; // GpuFb.pointer <- 4K aligned
-        mbox.buffer[29] = 0;    // GpuFb.size
-
-        mbox.buffer[30] = tag::GetPitch;
-        mbox.buffer[31] = 4;
-        mbox.buffer[32] = 4;
-        mbox.buffer[33] = 0;    // GpuFb.pitch
-
-        mbox.buffer[34] = tag::End;
+        mbox.buffer[15] = tag::End;
 
         mbox.call(channel::PropertyTagsArmToVc).map_err(VcError::MboxError)?;
 
-        if mbox.buffer[20] != 24 || mbox.buffer[28] == 0 {
+        uart.puts("\n######\nVC::mailbox returned\n");
+
+        if (mbox.buffer[4] & MAILBOX_TAG_VAL_LEN_RESPONSE) != 0 ||
+            (mbox.buffer[9] & MAILBOX_TAG_VAL_LEN_RESPONSE) != 0 ||
+            (mbox.buffer[13] & MAILBOX_TAG_VAL_LEN_RESPONSE) != 0 {
+            uart.puts("\n######\nVC::returning FormatError\n");
             return Err(VcError::FormatError);
         }
 
@@ -71,16 +60,19 @@ impl VC {
         let max_x = mbox.buffer[5] / CHARSIZE_X;
         let max_y = mbox.buffer[6] / CHARSIZE_Y;
 
-        let order: PixelOrder = match mbox.buffer[24] {
+        let order: PixelOrder = match mbox.buffer[10] {
             0 => PixelOrder::BGR,
             1 => PixelOrder::RGB,
             _ => return Err(VcError::PixelOrderInvalid),
         };
 
+        uart.puts("\n######\nVC::returning Display\n");
+
         Ok(Display::new(
-            bus2phys(mbox.buffer[28]),
-            mbox.buffer[29], // size
-            mbox.buffer[33], // pitch
+            bus2phys(fb_init.pointer),
+            fb_init.size, // size
+            fb_init.depth, // depth
+            mbox.buffer[14], // pitch
             max_x,
             max_y,
             mbox.buffer[5],
@@ -119,8 +111,7 @@ impl VC {
     fn set_display_size(size: Size2d) -> Option<Display> {
         // @todo Make Display use VC functions internally instead
         let mut mbox = Mbox::new();
-        let mut count: usize = 0;
-    
+
         count += 1;
         mbox.0[count] = MAILBOX_REQ_CODE; // Request
         count += 1;
@@ -164,11 +155,11 @@ impl VC {
         count += 1;
         mbox.0[count] = Tag::End as u32;
         mbox.0[0] = (count * 4) as u32; // Total size
-    
+
         let max_count = count;
-    
-        Mailbox::call(Channel::PropertyTagsArmToVc as u8, &mbox.0 as *const u32 as *const u8)?;
-    
+
+        Mailbox::call(channel::PropertyTagsArmToVc)?;
+
         if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
             return None;
         }
