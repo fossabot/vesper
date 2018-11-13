@@ -63,6 +63,20 @@ static CHAR_ARRAY: [u64; 95] = [
     0x6e3b000000000000,                                             // ~
 ];
 
+impl core::fmt::Display for Display {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "\n\n\n#### Display(base: {:x}, size: {}, depth: {}, pitch: {}, w: {}, h: {}, order: {})\n\n\n",
+            self.base,
+            self.size,
+            self.depth,
+            self.pitch,
+            self.width,
+            self.height,
+            if self.order == PixelOrder::BGR { "BGR" } else { "RGB" }
+        )
+    }
+}
+
 impl Display {
     pub fn new(
         base: u32,
