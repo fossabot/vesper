@@ -1,7 +1,7 @@
-use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
-use platform::mailbox::{self, channel, tag, GpuFb, Mailbox, MAILBOX_TAG_VAL_LEN_RESPONSE};
-use platform::{rpi3::bus2phys, uart::MiniUart};
 use core::fmt::Write;
+use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
+use platform::mailbox::{self, channel, tag, GpuFb, Mailbox, response::VAL_LEN_FLAG};
+use platform::uart::MiniUart;
 
 pub struct VC;
 
@@ -36,6 +36,7 @@ impl VC {
         mbox.buffer[5] = 0; // GpuFb.vwidth
         mbox.buffer[6] = 0; // GpuFb.vheight
 
+        // SetPixelOrder doesn't work in QEMU, however TestPixelOrder does.
         mbox.buffer[7] = tag::TestPixelOrder;
         mbox.buffer[8] = 4;
         mbox.buffer[9] = 0;
@@ -48,8 +49,8 @@ impl VC {
 
         write!(uart, "\n######\nVC::mailbox returned\n\n{}\n", mbox);
 
-        if (mbox.buffer[4] & MAILBOX_TAG_VAL_LEN_RESPONSE) == 0
-            || (mbox.buffer[9] & MAILBOX_TAG_VAL_LEN_RESPONSE) == 0
+        if (mbox.buffer[4] & VAL_LEN_FLAG) == 0
+            || (mbox.buffer[9] & VAL_LEN_FLAG) == 0
         {
             write!(uart, "\n######\nVC::returning FormatError\n");
             return Err(VcError::FormatError);
@@ -63,18 +64,22 @@ impl VC {
             0 => PixelOrder::BGR,
             1 => PixelOrder::RGB,
             _ => {
-                write!(uart, "\n######\nVC::returning PixelOrderInvalid - {:x}\n", mbox.buffer[10]);
-                return Err(VcError::PixelOrderInvalid)
-            },
+                write!(
+                    uart,
+                    "\n######\nVC::returning PixelOrderInvalid - {:x}\n",
+                    mbox.buffer[10]
+                );
+                return Err(VcError::PixelOrderInvalid);
+            }
         };
 
         write!(uart, "\n######\nVC::returning Display\n");
 
         Ok(Display::new(
-            /*bus2phys(*/fb_init.pointer,//)
-            fb_init.size,    // size
-            fb_init.depth,   // depth
-            fb_init.pitch, // pitch
+            fb_init.pointer,
+            fb_init.size,
+            fb_init.depth,
+            fb_init.pitch,
             max_x,
             max_y,
             mbox.buffer[5],
