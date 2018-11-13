@@ -1,5 +1,5 @@
 use arch::*;
-use core::ops;
+use core::{fmt::Write, ops::Deref};
 use platform::{display::Size2d, rpi3::PERIPHERAL_BASE, uart::MiniUart};
 use register::mmio::*;
 
@@ -497,7 +497,7 @@ int bcm2835_mbox_call_prop(u32 chan, struct bcm2835_mbox_hdr *buffer);
 /// ```
 /// unsafe { (*Mbox::ptr()).STATUS.read() }
 /// ```
-impl ops::Deref for Mailbox {
+impl Deref for Mailbox {
     type Target = RegisterBlock;
 
     fn deref(&self) -> &Self::Target {
@@ -505,7 +505,7 @@ impl ops::Deref for Mailbox {
     }
 }
 
-impl ops::Deref for GpuFb {
+impl Deref for GpuFb {
     type Target = RegisterBlock;
 
     fn deref(&self) -> &Self::Target {
@@ -517,9 +517,9 @@ fn write(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
     let mut count: u32 = 0;
 
     {
-        let uart = MiniUart::new();
+        let mut uart = MiniUart::new();
         uart.init();
-        uart.puts("Mailbox::write\n");
+        write!(uart, "Mailbox::write {:x}/{:x}\n", buf_ptr, channel);
     }
 
     while regs.STATUS.is_set(STATUS::FULL) {
@@ -534,12 +534,11 @@ fn write(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
     Ok(())
 }
 
-fn read(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
+fn read(regs: &RegisterBlock, expected: u32, channel: u32) -> Result<()> {
     let mut count: u32 = 0;
 
-    let uart = MiniUart::new();
+    let mut uart = MiniUart::new();
     uart.init();
-    uart.puts("\n######\nMailbox::read\n");
 
     loop {
         while regs.STATUS.is_set(STATUS::EMPTY) {
@@ -561,22 +560,13 @@ fn read(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
         uart.puts("\n######\nMailbox::data read\n");
 
         // is it a response to our message?
-        if ((data & CHANNEL_MASK) == channel) && ((data & !CHANNEL_MASK) == buf_ptr) {
+        if ((data & CHANNEL_MASK) == channel) && ((data & !CHANNEL_MASK) == expected) {
             // is it a valid successful response?
-            return match self.buffer[1] {
-                response::SUCCESS => {
-                    uart.puts("\n######\nMailbox::returning SUCCESS\n");
-                    Ok(())
-                },
-                response::ERROR => {
-                    uart.puts("\n######\nMailbox::returning ResponseError\n");
-                    Err(MboxError::ResponseError)
-                },
-                _ => {
-                    uart.puts("\n######\nMailbox::returning UnknownError\n");
-                    Err(MboxError::UnknownError)
-                },
-            };
+            write!(uart, "\n######\nMailbox::data read OK\n");
+            return Ok(());
+        } else {
+            write!(uart, "\n######\nMailbox::data read ERROR - {:x}\n", data);
+            return Err(MboxError::ResponseError);
         }
     }
 }
@@ -596,7 +586,25 @@ impl Mailbox {
     }
 
     pub fn read(&self, channel: u32) -> Result<()> {
-        read(self, self.buffer.as_ptr() as u32, channel)
+        read(self, self.buffer.as_ptr() as u32, channel)?;
+
+        let mut uart = MiniUart::new();
+        uart.init();
+
+        return match self.buffer[1] {
+            response::SUCCESS => {
+                uart.puts("\n######\nMailbox::returning SUCCESS\n");
+                Ok(())
+            }
+            response::ERROR => {
+                uart.puts("\n######\nMailbox::returning ResponseError\n");
+                Err(MboxError::ResponseError)
+            }
+            _ => {
+                uart.puts("\n######\nMailbox::returning UnknownError\n");
+                Err(MboxError::UnknownError)
+            }
+        };
     }
 
     pub fn call(&self, channel: u32) -> Result<()> {
@@ -630,12 +638,44 @@ impl GpuFb {
         write(self, &self.width as *const u32 as u32, channel::FrameBuffer)
     }
 
-    pub fn read(&self) -> Result<()> {
-        read(self, &self.width as *mut u32 as u32, channel::FrameBuffer)
+    pub fn read(&mut self) -> Result<()> {
+        let regs = unsafe { &*Self::ptr() };
+        read(regs, 0, channel::FrameBuffer)
     }
 
-    pub fn call(&self) -> Result<()> {
+    pub fn call(&mut self) -> Result<()> {
         self.write()?;
         self.read()
+    }
+}
+
+impl core::fmt::Display for GpuFb {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(
+            f,
+            "\n\n\n#### GpuFb({}x{}, {}x{}, x{}, --{}--, +{}x{}, {}@{:x})\n\n\n",
+            self.width,
+            self.height,
+            self.vwidth,
+            self.vheight,
+            self.depth,
+            self.pitch,
+            self.x_offset,
+            self.y_offset,
+            self.size,
+            self.pointer,
+        )
+    }
+}
+
+impl core::fmt::Display for Mailbox {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let count = self.buffer[0] / 4;
+        assert_eq!(self.buffer[0], count*4);
+        assert!(count <= 36);
+        for i in 0usize..count as usize {
+            write!(f, "[{:02}] {:08x}\n", i, self.buffer[i]);
+        }
+        Ok(())
     }
 }
