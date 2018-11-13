@@ -1,6 +1,6 @@
 use arch::*;
 use core::ops;
-use platform::{rpi3::PERIPHERAL_BASE, gpio};
+use platform::{gpio, rpi3::PERIPHERAL_BASE};
 use register::mmio::*;
 
 // The base address for UART.

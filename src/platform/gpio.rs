@@ -23,7 +23,6 @@ const GPIO_BASE: u32 = PERIPHERAL_BASE + 0x20_0000;
 //
 //const GPPUDCLK1: u32 = GPIO_BASE + 0x9C;
 
-
 /*
  * MIT License
  *

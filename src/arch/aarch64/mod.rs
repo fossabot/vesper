@@ -122,7 +122,7 @@ pub fn loop_delay(rounds: u32) {
     }
 }
 
-pub fn loop_until<F: Fn()->bool>(f: F) {
+pub fn loop_until<F: Fn() -> bool>(f: F) {
     loop {
         if f() {
             break;

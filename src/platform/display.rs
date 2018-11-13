@@ -111,8 +111,9 @@ impl Display {
             }
         };
         let f = |v: u32, chan: u16| unsafe {
-            *(self.base as *mut u8)
-                .offset((y as u32 * self.pitch + x as u32 * (self.depth / 8) + c(chan) as u32) as isize) = v as u8;
+            *(self.base as *mut u8).offset(
+                (y as u32 * self.pitch + x as u32 * (self.depth / 8) + c(chan) as u32) as isize,
+            ) = v as u8;
         };
 
         f(color & 0xff, 0);

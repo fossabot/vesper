@@ -28,7 +28,7 @@ pub use arch::*;
 pub mod platform;
 
 use core::fmt::Write;
-use platform::{display::Size2d, vc::VC, uart::MiniUart};
+use platform::{display::Size2d, uart::MiniUart, vc::VC};
 
 // User-facing kernel parts - syscalls and capability invocations.
 // pub mod vesper; -- no mod exported, because available through syscall interface

@@ -1,5 +1,5 @@
 use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
-use platform::mailbox::{self, channel, Mailbox, GpuFb, tag, MAILBOX_TAG_VAL_LEN_RESPONSE};
+use platform::mailbox::{self, channel, tag, GpuFb, Mailbox, MAILBOX_TAG_VAL_LEN_RESPONSE};
 use platform::{rpi3::bus2phys, uart::MiniUart};
 
 pub struct VC;
