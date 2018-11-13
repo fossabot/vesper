@@ -27,6 +27,7 @@ pub mod arch;
 pub use arch::*;
 pub mod platform;
 
+use core::fmt::Write;
 use platform::{display::Size2d, vc::VC, uart::MiniUart};
 
 // User-facing kernel parts - syscalls and capability invocations.
@@ -52,20 +53,27 @@ impl RGB {
 // Kernel entry point
 // arch crate is responsible for calling this
 pub fn kmain() -> ! {
-    let uart = MiniUart::new();
+    let mut uart = MiniUart::new();
     uart.init();
-    uart.puts("Hey there, mini uart talking!");
+    uart.puts("\n\nHey there, mini uart talking!\n\n");
 
     if let Ok(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
+        write!(uart, "{}\n", display);
+
+        write!(uart, "Drawing rect\n\n");
         display.rect(100, 100, 200, 200, RGB::rgb(255, 255, 255).0);
+        uart.puts("Drawing Hello text\n\n");
         display.draw_text(50, 50, "Hello there!", RGB::rgb(128, 192, 255).0);
         // display.draw_text(50, 150, core::fmt("Display width {}", display.width), RGB::rgb(255,0,0).0);
 
+        uart.puts("Drawing RED\n\n");
         display.draw_text(150, 50, "RED", RGB::rgb(255, 0, 0).0);
+        uart.puts("Drawing GREEN\n\n");
         display.draw_text(160, 60, "GREEN", RGB::rgb(0, 255, 0).0);
+        uart.puts("Drawing BLUE\n\n");
         display.draw_text(170, 70, "BLUE", RGB::rgb(0, 0, 255).0);
     }
 
-    uart.puts("Bye, going to sleep now");
+    uart.puts("\n######\nBye, going to sleep now\n######");
     endless_sleep();
 }

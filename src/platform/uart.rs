@@ -217,3 +217,10 @@ impl MiniUart {
         }
     }
 }
+
+impl core::fmt::Write for MiniUart {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.puts(s);
+        Ok(())
+    }
+}
