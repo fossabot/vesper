@@ -1,6 +1,6 @@
 use arch::*;
-use core::{fmt::Write, ops::Deref};
-use platform::{display::Size2d, rpi3::PERIPHERAL_BASE, uart::MiniUart};
+use core::ops::Deref;
+use platform::{display::Size2d, rpi3::PERIPHERAL_BASE};
 use register::mmio::*;
 
 // Public interface to the mailbox
@@ -95,13 +95,12 @@ pub struct GpuFb {
 pub const REQUEST: u32 = 0;
 
 // Responses
-mod response {
+pub mod response {
     pub const SUCCESS: u32 = 0x8000_0000;
     pub const ERROR: u32 = 0x8000_0001; // error parsing request buffer (partial response)
+    /** When responding, the VC sets this bit in val_len to indicate a response */
+    pub const VAL_LEN_FLAG: u32 = 0x8000_0000;
 }
-
-/* When responding, the VC sets this bit in val_len to indicate a response */
-pub const MAILBOX_TAG_VAL_LEN_RESPONSE: u32 = 0x8000_0000;
 
 #[allow(non_upper_case_globals)]
 pub mod tag {
@@ -146,346 +145,88 @@ pub mod tag {
     pub const End: u32 = 0;
 }
 
-/*
+pub mod power {
+    pub const SDHCI: u32 = 0;
+    pub const UART0: u32 = 1;
+    pub const UART1: u32 = 2;
+    pub const USB_HCD: u32 = 3;
+    pub const I2C0: u32 = 4;
+    pub const I2C1: u32 = 5;
+    pub const I2C2: u32 = 6;
+    pub const SPI: u32 = 7;
+    pub const CCP2TX: u32 = 8;
 
-struct bcm2835_mbox_tag_hdr {
-u32 tag;
-u32 val_buf_size;
-u32 val_len;
-};
+    pub mod response {
+        pub const ON: u32 = 1;
+        pub const NO_DEV: u32 = 2; /* Device doesn't exist */
+    }
+    pub mod request {
+        pub const ON: u32 = 1;
+        pub const WAIT: u32 = 2;
+    }
+}
 
-struct bcm2835_mbox_tag_get_board_rev {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-} req;
-struct {
-u32 rev;
-} resp;
-} body;
-};
+pub mod clock {
+    pub const EMMC: u32 = 1;
+    pub const UART: u32 = 2;
+    pub const ARM: u32 = 3;
+    pub const CORE: u32 = 4;
+    pub const V3D: u32 = 5;
+    pub const H264: u32 = 6;
+    pub const ISP: u32 = 7;
+    pub const SDRAM: u32 = 8;
+    pub const PIXEL: u32 = 9;
+    pub const PWM: u32 = 10;
+}
 
-struct bcm2835_mbox_tag_get_mac_address {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-} req;
-struct {
-u8 mac[6];
-u8 pad[2];
-} resp;
-} body;
-};
+pub mod alpha_mode {
+    pub const OPAQUE_0: u32 = 0; // 255 - transparent
+    pub const TRANSPARENT_0: u32 = 1; // 255 - opaque
+    pub const IGNORED: u32 = 2;
+}
 
-struct bcm2835_mbox_tag_get_board_serial {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct __packed {
-u64 serial;
-} resp;
-} body;
-};
+fn write(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
+    let mut count: u32 = 0;
 
-struct bcm2835_mbox_tag_get_arm_mem {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-} req;
-struct {
-u32 mem_base;
-u32 mem_size;
-} resp;
-} body;
-};
+    while regs.STATUS.is_set(STATUS::FULL) {
+        count += 1;
+        if count > (1 << 25) {
+            return Err(MboxError::Timeout);
+        }
+    }
+    dmb();
+    regs.WRITE
+        .set((buf_ptr & !CHANNEL_MASK) | (channel & CHANNEL_MASK));
+    Ok(())
+}
 
-#define BCM2835_MBOX_POWER_DEVID_SDHCI      0
-#define BCM2835_MBOX_POWER_DEVID_UART0      1
-#define BCM2835_MBOX_POWER_DEVID_UART1      2
-#define BCM2835_MBOX_POWER_DEVID_USB_HCD    3
-#define BCM2835_MBOX_POWER_DEVID_I2C0       4
-#define BCM2835_MBOX_POWER_DEVID_I2C1       5
-#define BCM2835_MBOX_POWER_DEVID_I2C2       6
-#define BCM2835_MBOX_POWER_DEVID_SPI        7
-#define BCM2835_MBOX_POWER_DEVID_CCP2TX     8
+fn read(regs: &RegisterBlock, expected: u32, channel: u32) -> Result<()> {
+    let mut count: u32 = 0;
 
-#define BCM2835_MBOX_POWER_STATE_RESP_ON    (1 << 0)
-/* Device doesn't exist */
-#define BCM2835_MBOX_POWER_STATE_RESP_NODEV (1 << 1)
+    loop {
+        while regs.STATUS.is_set(STATUS::EMPTY) {
+            count += 1;
+            if count > (1 << 25) {
+                return Err(MboxError::Timeout);
+            }
+        }
 
-struct bcm2835_mbox_tag_get_power_state {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-u32 device_id;
-} req;
-struct {
-u32 device_id;
-u32 state;
-} resp;
-} body;
-};
+        /* Read the data
+         * Data memory barriers as we've switched peripheral
+         */
+        dmb();
+        let data: u32 = regs.READ.get();
+        dmb();
 
-#define BCM2835_MBOX_SET_POWER_STATE_REQ_ON (1 << 0)
-#define BCM2835_MBOX_SET_POWER_STATE_REQ_WAIT   (1 << 1)
-
-struct bcm2835_mbox_tag_set_power_state {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-u32 device_id;
-u32 state;
-} req;
-struct {
-u32 device_id;
-u32 state;
-} resp;
-} body;
-};
-
-#define BCM2835_MBOX_CLOCK_ID_EMMC  1
-#define BCM2835_MBOX_CLOCK_ID_UART  2
-#define BCM2835_MBOX_CLOCK_ID_ARM   3
-#define BCM2835_MBOX_CLOCK_ID_CORE  4
-#define BCM2835_MBOX_CLOCK_ID_V3D   5
-#define BCM2835_MBOX_CLOCK_ID_H264  6
-#define BCM2835_MBOX_CLOCK_ID_ISP   7
-#define BCM2835_MBOX_CLOCK_ID_SDRAM 8
-#define BCM2835_MBOX_CLOCK_ID_PIXEL 9
-#define BCM2835_MBOX_CLOCK_ID_PWM   10
-
-struct bcm2835_mbox_tag_get_clock_rate {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-u32 clock_id;
-} req;
-struct {
-u32 clock_id;
-u32 rate_hz;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_allocate_buffer {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-u32 alignment;
-} req;
-struct {
-u32 fb_address;
-u32 fb_size;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_release_buffer {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-} req;
-struct {
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_blank_screen {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-/* bit 0 means on, other bots reserved */
-u32 state;
-} req;
-struct {
-u32 state;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_physical_w_h {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 width;
-u32 height;
-} req;
-struct {
-u32 width;
-u32 height;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_virtual_w_h {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 width;
-u32 height;
-} req;
-struct {
-u32 width;
-u32 height;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_depth {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 bpp;
-} req;
-struct {
-u32 bpp;
-} resp;
-} body;
-};
-
-#define BCM2835_MBOX_PIXEL_ORDER_BGR        0
-#define BCM2835_MBOX_PIXEL_ORDER_RGB        1
-
-struct bcm2835_mbox_tag_pixel_order {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 order;
-} req;
-struct {
-u32 order;
-} resp;
-} body;
-};
-
-#define BCM2835_MBOX_ALPHA_MODE_0_OPAQUE    0
-#define BCM2835_MBOX_ALPHA_MODE_0_TRANSPARENT   1
-#define BCM2835_MBOX_ALPHA_MODE_IGNORED     2
-
-struct bcm2835_mbox_tag_alpha_mode {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 alpha;
-} req;
-struct {
-u32 alpha;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_pitch {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-} req;
-struct {
-u32 pitch;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_virtual_offset {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 x;
-u32 y;
-} req;
-struct {
-u32 x;
-u32 y;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_overscan {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-/* req not used for get */
-struct {
-u32 top;
-u32 bottom;
-u32 left;
-u32 right;
-} req;
-struct {
-u32 top;
-u32 bottom;
-u32 left;
-u32 right;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_get_palette {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-} req;
-struct {
-u32 data[1024];
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_test_palette {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-u32 offset;
-u32 num_entries;
-u32 data[256];
-} req;
-struct {
-u32 is_invalid;
-} resp;
-} body;
-};
-
-struct bcm2835_mbox_tag_set_palette {
-struct bcm2835_mbox_tag_hdr tag_hdr;
-union {
-struct {
-u32 offset;
-u32 num_entries;
-u32 data[256];
-} req;
-struct {
-u32 is_invalid;
-} resp;
-} body;
-};
-
-/*
- * Pass a raw u32 message to the VC, and receive a raw u32 back.
- *
- * Returns 0 for success, any other value for error.
- */
-int bcm2835_mbox_call_raw(u32 chan, u32 send, u32 *recv);
-
-/*
- * Pass a complete property-style buffer to the VC, and wait until it has
- * been processed.
- *
- * This function expects a pointer to the mbox_hdr structure in an attempt
- * to ensure some degree of type safety. However, some number of tags and
- * a termination value are expected to immediately follow the header in
- * memory, as required by the property protocol.
- *
- * Each struct bcm2835_mbox_hdr passed must be allocated with
- * ALLOC_CACHE_ALIGN_BUFFER(x, y, z) to ensure proper cache flush/invalidate.
- *
- * Returns 0 for success, any other value for error.
- */
-int bcm2835_mbox_call_prop(u32 chan, struct bcm2835_mbox_hdr *buffer);
-
-*/
+        // is it a response to our message?
+        if ((data & CHANNEL_MASK) == channel) && ((data & !CHANNEL_MASK) == expected) {
+            // is it a valid successful response?
+            return Ok(());
+        } else {
+            return Err(MboxError::ResponseError);
+        }
+    }
+}
 
 /// Deref to RegisterBlock
 ///
@@ -505,69 +246,15 @@ impl Deref for Mailbox {
     }
 }
 
-impl Deref for GpuFb {
-    type Target = RegisterBlock;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*Self::ptr() }
-    }
-}
-
-fn write(regs: &RegisterBlock, buf_ptr: u32, channel: u32) -> Result<()> {
-    let mut count: u32 = 0;
-
-    {
-        let mut uart = MiniUart::new();
-        uart.init();
-        write!(uart, "Mailbox::write {:x}/{:x}\n", buf_ptr, channel);
-    }
-
-    while regs.STATUS.is_set(STATUS::FULL) {
-        count += 1;
-        if count > (1 << 25) {
-            return Err(MboxError::Timeout);
+impl core::fmt::Display for Mailbox {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let count = self.buffer[0] / 4;
+        assert_eq!(self.buffer[0], count * 4);
+        assert!(count <= 36);
+        for i in 0usize..count as usize {
+            write!(f, "[{:02}] {:08x}\n", i, self.buffer[i]);
         }
-    }
-    dmb();
-    regs.WRITE
-        .set((buf_ptr & !CHANNEL_MASK) | (channel & CHANNEL_MASK));
-    Ok(())
-}
-
-fn read(regs: &RegisterBlock, expected: u32, channel: u32) -> Result<()> {
-    let mut count: u32 = 0;
-
-    let mut uart = MiniUart::new();
-    uart.init();
-
-    loop {
-        while regs.STATUS.is_set(STATUS::EMPTY) {
-            count += 1;
-            if count > (1 << 25) {
-                return Err(MboxError::Timeout);
-            }
-        }
-
-        uart.puts("\n######\nMailbox::reading data\n");
-
-        /* Read the data
-         * Data memory barriers as we've switched peripheral
-         */
-        dmb();
-        let data: u32 = regs.READ.get();
-        dmb();
-
-        uart.puts("\n######\nMailbox::data read\n");
-
-        // is it a response to our message?
-        if ((data & CHANNEL_MASK) == channel) && ((data & !CHANNEL_MASK) == expected) {
-            // is it a valid successful response?
-            write!(uart, "\n######\nMailbox::data read OK\n");
-            return Ok(());
-        } else {
-            write!(uart, "\n######\nMailbox::data read ERROR - {:x}\n", data);
-            return Err(MboxError::ResponseError);
-        }
+        Ok(())
     }
 }
 
@@ -588,28 +275,53 @@ impl Mailbox {
     pub fn read(&self, channel: u32) -> Result<()> {
         read(self, self.buffer.as_ptr() as u32, channel)?;
 
-        let mut uart = MiniUart::new();
-        uart.init();
-
         return match self.buffer[1] {
-            response::SUCCESS => {
-                uart.puts("\n######\nMailbox::returning SUCCESS\n");
-                Ok(())
-            }
-            response::ERROR => {
-                uart.puts("\n######\nMailbox::returning ResponseError\n");
-                Err(MboxError::ResponseError)
-            }
-            _ => {
-                uart.puts("\n######\nMailbox::returning UnknownError\n");
-                Err(MboxError::UnknownError)
-            }
+            response::SUCCESS => Ok(()),
+            response::ERROR => Err(MboxError::ResponseError),
+            _ => Err(MboxError::UnknownError),
         };
     }
 
     pub fn call(&self, channel: u32) -> Result<()> {
         self.write(channel)?;
         self.read(channel)
+    }
+}
+
+/// Deref to RegisterBlock
+///
+/// Allows writing
+/// ```
+/// self.STATUS.read()
+/// ```
+/// instead of something along the lines of
+/// ```
+/// unsafe { (*Mbox::ptr()).STATUS.read() }
+/// ```
+impl Deref for GpuFb {
+    type Target = RegisterBlock;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+impl core::fmt::Display for GpuFb {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(
+            f,
+            "\n\n\n#### GpuFb({}x{}, {}x{}, d{}, --{}--, +{}x{}, {}@{:x})\n\n\n",
+            self.width,
+            self.height,
+            self.vwidth,
+            self.vheight,
+            self.depth,
+            self.pitch,
+            self.x_offset,
+            self.y_offset,
+            self.size,
+            self.pointer,
+        )
     }
 }
 
@@ -639,43 +351,12 @@ impl GpuFb {
     }
 
     pub fn read(&mut self) -> Result<()> {
-        let regs = unsafe { &*Self::ptr() };
-        read(regs, 0, channel::FrameBuffer)
+//        let regs = unsafe { &*Self::ptr() };
+        read(self, 0, channel::FrameBuffer)
     }
 
     pub fn call(&mut self) -> Result<()> {
         self.write()?;
         self.read()
-    }
-}
-
-impl core::fmt::Display for GpuFb {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(
-            f,
-            "\n\n\n#### GpuFb({}x{}, {}x{}, x{}, --{}--, +{}x{}, {}@{:x})\n\n\n",
-            self.width,
-            self.height,
-            self.vwidth,
-            self.vheight,
-            self.depth,
-            self.pitch,
-            self.x_offset,
-            self.y_offset,
-            self.size,
-            self.pointer,
-        )
-    }
-}
-
-impl core::fmt::Display for Mailbox {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let count = self.buffer[0] / 4;
-        assert_eq!(self.buffer[0], count*4);
-        assert!(count <= 36);
-        for i in 0usize..count as usize {
-            write!(f, "[{:02}] {:08x}\n", i, self.buffer[i]);
-        }
-        Ok(())
     }
 }
