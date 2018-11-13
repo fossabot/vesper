@@ -1,6 +1,7 @@
 use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
 use platform::mailbox::{self, channel, tag, GpuFb, Mailbox, MAILBOX_TAG_VAL_LEN_RESPONSE};
 use platform::{rpi3::bus2phys, uart::MiniUart};
+use core::fmt::Write;
 
 pub struct VC;
 
@@ -12,19 +13,21 @@ pub enum VcError {
 
 impl VC {
     pub fn init_fb(size: Size2d) -> Result<Display, VcError> {
-        let uart = MiniUart::new();
+        let mut uart = MiniUart::new();
         uart.init();
 
-        let fb_init = GpuFb::new(size, 32);
+        let mut fb_init = GpuFb::new(size, 32);
 
         fb_init.call().map_err(VcError::MboxError)?;
+
+        write!(uart, "\n{}\n", fb_init);
 
         // mailbox
         let mut mbox = Mailbox::new();
 
         // From https://github.com/bztsrc/raspi3-tutorial/blob/master/09_framebuffer/lfb.c
         // @todo macro to `fill_tag(mbox, offset, tag::XX, arg, arg, arg)`
-        mbox.buffer[0] = 35 * 4;
+        mbox.buffer[0] = 12 * 4;
         mbox.buffer[1] = mailbox::REQUEST;
 
         mbox.buffer[2] = tag::GetVirtualWH;
@@ -33,26 +36,22 @@ impl VC {
         mbox.buffer[5] = 0; // GpuFb.vwidth
         mbox.buffer[6] = 0; // GpuFb.vheight
 
-        mbox.buffer[7] = tag::GetPixelOrder;
+        mbox.buffer[7] = tag::TestPixelOrder;
         mbox.buffer[8] = 4;
         mbox.buffer[9] = 0;
-        mbox.buffer[10] = 0; // PixelOrder
+        mbox.buffer[10] = 1; // PixelOrder
 
-        mbox.buffer[11] = tag::GetPitch;
-        mbox.buffer[12] = 4;
-        mbox.buffer[13] = 0;
-        mbox.buffer[14] = 0;    // GpuFb.pitch
+        mbox.buffer[11] = tag::End;
 
-        mbox.buffer[15] = tag::End;
+        mbox.call(channel::PropertyTagsArmToVc)
+            .map_err(VcError::MboxError)?;
 
-        mbox.call(channel::PropertyTagsArmToVc).map_err(VcError::MboxError)?;
+        write!(uart, "\n######\nVC::mailbox returned\n\n{}\n", mbox);
 
-        uart.puts("\n######\nVC::mailbox returned\n");
-
-        if (mbox.buffer[4] & MAILBOX_TAG_VAL_LEN_RESPONSE) != 0 ||
-            (mbox.buffer[9] & MAILBOX_TAG_VAL_LEN_RESPONSE) != 0 ||
-            (mbox.buffer[13] & MAILBOX_TAG_VAL_LEN_RESPONSE) != 0 {
-            uart.puts("\n######\nVC::returning FormatError\n");
+        if (mbox.buffer[4] & MAILBOX_TAG_VAL_LEN_RESPONSE) == 0
+            || (mbox.buffer[9] & MAILBOX_TAG_VAL_LEN_RESPONSE) == 0
+        {
+            write!(uart, "\n######\nVC::returning FormatError\n");
             return Err(VcError::FormatError);
         }
 
@@ -63,16 +62,19 @@ impl VC {
         let order: PixelOrder = match mbox.buffer[10] {
             0 => PixelOrder::BGR,
             1 => PixelOrder::RGB,
-            _ => return Err(VcError::PixelOrderInvalid),
+            _ => {
+                write!(uart, "\n######\nVC::returning PixelOrderInvalid - {:x}\n", mbox.buffer[10]);
+                return Err(VcError::PixelOrderInvalid)
+            },
         };
 
-        uart.puts("\n######\nVC::returning Display\n");
+        write!(uart, "\n######\nVC::returning Display\n");
 
         Ok(Display::new(
-            bus2phys(fb_init.pointer),
-            fb_init.size, // size
-            fb_init.depth, // depth
-            mbox.buffer[14], // pitch
+            /*bus2phys(*/fb_init.pointer,//)
+            fb_init.size,    // size
+            fb_init.depth,   // depth
+            fb_init.pitch, // pitch
             max_x,
             max_y,
             mbox.buffer[5],
@@ -111,7 +113,7 @@ impl VC {
     fn set_display_size(size: Size2d) -> Option<Display> {
         // @todo Make Display use VC functions internally instead
         let mut mbox = Mbox::new();
-
+    
         count += 1;
         mbox.0[count] = MAILBOX_REQ_CODE; // Request
         count += 1;
@@ -155,11 +157,11 @@ impl VC {
         count += 1;
         mbox.0[count] = Tag::End as u32;
         mbox.0[0] = (count * 4) as u32; // Total size
-
+    
         let max_count = count;
-
+    
         Mailbox::call(channel::PropertyTagsArmToVc)?;
-
+    
         if mbox.0[1] != MAILBOX_RESP_CODE_SUCCESS {
             return None;
         }
