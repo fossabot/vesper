@@ -16,6 +16,7 @@ pub enum PixelOrder {
 pub struct Display {
     base: u32,
     size: u32,
+    depth: u32,
     pitch: u32,
     max_x: u32,
     max_y: u32,
@@ -66,6 +67,7 @@ impl Display {
     pub fn new(
         base: u32,
         size: u32,
+        depth: u32,
         pitch: u32,
         max_x: u32,
         max_y: u32,
@@ -76,6 +78,7 @@ impl Display {
         Display {
             base,
             size,
+            depth,
             pitch,
             max_x,
             max_y,
@@ -95,7 +98,7 @@ impl Display {
         };
         let f = |v: u32, chan: u16| unsafe {
             *(self.base as *mut u8)
-                .offset((y as u32 * self.pitch + x as u32 * 3 + c(chan) as u32) as isize) = v as u8;
+                .offset((y as u32 * self.pitch + x as u32 * (self.depth / 8) + c(chan) as u32) as isize) = v as u8;
         };
 
         f(color & 0xff, 0);
