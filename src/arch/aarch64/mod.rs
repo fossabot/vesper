@@ -1,103 +1,92 @@
-// mod arch::aarch64
-use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
-use core::intrinsics::volatile_store;
+//use core::intrinsics::volatile_load; // core equivalent of std::ptr::read_volatile
+//use core::intrinsics::volatile_store;
+use cortex_a::{asm, regs::*, barrier};
 
 mod memory;
 pub use self::memory::{PhysicalAddress, VirtualAddress};
 
 /// The entry to Rust, all things must be initialized
-/// This is called by assembly trampoline, does arch-specific init
+/// This is invoked from the linker script, does arch-specific init
 /// and passes control to the kernel boot function kmain().
 #[no_mangle]
 pub unsafe extern "C" fn karch_start() -> ! {
     // Set sp to 0x80000 (just before kernel start)
-    asm!("orr sp, xzr, #0x80000" :::: "volatile");
+    const STACK_START: u64 = 0x8_0000;
 
-    if read_cpu_id() != 0 {
-        endless_sleep();
+    SP.set(STACK_START);
+
+    match read_cpu_id() {
+        0 => {
+            setup_paging();
+            ::kmain()
+        }
+        _ => endless_sleep(), // if not core0, indefinitely wait for events
     }
-
-    setup_paging();
-    ::kmain()
 }
 
 // Data memory barrier
+#[inline]
 pub fn dmb() {
-    unsafe {
-        asm!("dmb sy" :::: "volatile");
-    } // @fixme this is a full barrier
+    unsafe { barrier::dmb(barrier::SY); }
+//    unsafe {
+//        asm!("dmb sy" :::: "volatile");
+//    } // @fixme this is a full barrier
 }
 
+#[inline]
 pub fn flushcache(address: usize) {
     unsafe {
         asm!("dc ivac, $0" :: "r"(address) :: "volatile");
     }
 }
 
+#[inline]
 pub fn read_translation_table_base() -> PhysicalAddress {
-    let mut base: PhysicalAddress = 0;
-    unsafe {
-        asm!("mrs $0, ttbr0_el1" : "=r"(base) ::: "volatile");
-    }
-    base
+    TTBR0_EL1.get() as PhysicalAddress
 }
 
-pub fn read_cpu_id() -> u8 {
-    let id: u8;
-    unsafe {
-        asm!("mrs $0, mpidr_el1" : "=r"(id) ::: "volatile");
-    }
-    id & 0x3
+#[inline]
+pub fn read_cpu_id() -> u64 {
+    const CORE_MASK: u64 = 0x3;
+    MPIDR_EL1.get() & CORE_MASK
 }
 
+#[inline]
 pub fn endless_sleep() -> ! {
     loop {
-        unsafe {
-            asm!("wfe" :::: "volatile");
-        }
+        asm::wfe();
     }
 }
 
+#[inline]
 pub fn read_translation_control() -> u64 {
-    let mut tcr: u64 = 0;
-    unsafe {
-        asm!("mrs $0, tcr_el1" : "=r"(tcr) ::: "volatile");
-    }
-    tcr
+    TCR_EL1.get()
 }
 
+#[inline]
 pub fn read_mair() -> u64 {
-    let mut mair: u64 = 0;
-    unsafe {
-        asm!("mrs $0, mair_el1" : "=r"(mair) ::: "volatile");
-    }
-    mair
+    MAIR_EL1.get()
 }
 
+#[inline]
 pub fn write_translation_table_base(base: PhysicalAddress) {
-    unsafe {
-        asm!("msr ttbr0_el1, $0" :: "r"(base) :: "volatile");
-    }
+    TTBR0_EL1.set(base as u64)
 }
 
-pub fn current_el() -> u8 {
-    let mut el: u8 = 0;
-    unsafe {
-        asm!("mrs $0, CurrentEL" : "=r"(el) :: "cc" : "volatile");
-    }
-    el >> 2
+#[inline]
+pub fn current_el() -> u32 {
+    CurrentEL.get()
 }
 
 // Helper function similar to u-boot
+#[inline]
 pub fn write_ttbr_tcr_mair(el: u8, base: PhysicalAddress, tcr: u64, attr: u64) {
-    unsafe {
-        asm!("dsb sy" :::: "volatile");
-    }
+    unsafe { barrier::dsb(barrier::SY); }
     match el {
-        1 => unsafe {
-            asm!("msr ttbr0_el1, $0
-                msr tcr_el1, $1
-                msr mair_el1, $2" :: "r"(base), "r"(tcr), "r"(attr) : "memory" : "volatile");
+        1 => {
+            TTBR0_EL1.set(base as u64);
+            TCR_EL1.set(tcr);
+            MAIR_EL1.set(attr);
         },
         2 => unsafe {
             asm!("msr ttbr0_el2, $0
@@ -111,36 +100,35 @@ pub fn write_ttbr_tcr_mair(el: u8, base: PhysicalAddress, tcr: u64, attr: u64) {
         },
         _ => endless_sleep(),
     }
-    unsafe {
-        asm!("isb" :::: "volatile");
-    }
+    unsafe { barrier::isb(barrier::SY); }
 }
 
+#[inline]
 pub fn loop_delay(rounds: u32) {
     for _ in 0..rounds {
-        unsafe { asm!("nop" :::: "volatile") };
+        asm::nop();
     }
 }
 
+#[inline]
 pub fn loop_until<F: Fn() -> bool>(f: F) {
     loop {
         if f() {
             break;
         }
-
-        unsafe { asm!("nop" :::: "volatile") };
+        asm::nop();
     }
 }
 
 // Not necessary since we have register crate now?
-pub fn mmio_write(reg: u32, val: u32) {
-    unsafe { volatile_store(reg as *mut u32, val) }
-}
+//pub fn mmio_write(reg: u32, val: u32) {
+//    unsafe { volatile_store(reg as *mut u32, val) }
+//}
 
 // Not necessary since we have register crate now?
-pub fn mmio_read(reg: u32) -> u32 {
-    unsafe { volatile_load(reg as *const u32) }
-}
+//pub fn mmio_read(reg: u32) -> u32 {
+//    unsafe { volatile_load(reg as *const u32) }
+//}
 
 // Identity-map things for now.
 //

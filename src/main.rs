@@ -21,6 +21,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate register;
 extern crate rlibc;
+extern crate cortex_a;
 
 use core::panic::PanicInfo;
 #[macro_use]
