@@ -70,7 +70,7 @@ pub fn kmain() -> ! {
         display.rect(10, 10, 250, 250, RGB::rgb(32, 96, 64).0);
 //        uart.puts("Drawing Hello text\n\n");
         display.draw_text(50, 50, "Hello there!", RGB::rgb(128, 192, 255).0);
-        //        display.draw_text(50, 150, core::fmt("{}", display), RGB::rgb(255,0,0).0);
+        //display.draw_text(50, 150, core::fmt("{}", display), RGB::rgb(255,0,0).0);
 
 //        uart.puts("Drawing RED\n\n");
         display.draw_text(150, 50, "RED", RGB::rgb(255, 0, 0).0);
