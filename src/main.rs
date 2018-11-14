@@ -50,6 +50,10 @@ impl RGB {
     fn rgb(r: u8, g: u8, b: u8) -> RGB {
         RGB((b as u32) << 16 | (g as u32) << 8 | r as u32)
     }
+
+    fn rgba(r: u8, g: u8, b: u8, a: u8) -> RGB {
+        RGB((a as u32) << 24 | (b as u32) << 16 | (g as u32) << 8 | r as u32)
+    }
 }
 
 // Kernel entry point

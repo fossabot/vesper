@@ -26,8 +26,8 @@ impl VC {
         let mut mbox = Mailbox::new();
 
         // From https://github.com/bztsrc/raspi3-tutorial/blob/master/09_framebuffer/lfb.c
-        // @todo macro to `fill_tag(mbox, offset, tag::XX, arg, arg, arg)`
-        mbox.buffer[0] = 12 * 4;
+        // @todo macro to `fill_tag!(mbox, offset, tag::XX, arg, arg, arg)`
+        mbox.buffer[0] = 16 * 4;
         mbox.buffer[1] = mailbox::REQUEST;
 
         mbox.buffer[2] = tag::GetVirtualWH;
@@ -39,10 +39,15 @@ impl VC {
         // SetPixelOrder doesn't work in QEMU, however TestPixelOrder does.
         mbox.buffer[7] = tag::TestPixelOrder;
         mbox.buffer[8] = 4;
-        mbox.buffer[9] = 0;
+        mbox.buffer[9] = 4;
         mbox.buffer[10] = 1; // PixelOrder
 
-        mbox.buffer[11] = tag::End;
+        mbox.buffer[11] = tag::SetAlphaMode;
+        mbox.buffer[12] = 4;
+        mbox.buffer[13] = 4;
+        mbox.buffer[14] = mailbox::alpha_mode::IGNORED;
+
+        mbox.buffer[15] = tag::End;
 
         mbox.call(channel::PropertyTagsArmToVc)
             .map_err(VcError::MboxError)?;
