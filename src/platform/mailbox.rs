@@ -336,7 +336,7 @@ impl GpuFb {
             depth,
             x_offset: 0,
             y_offset: 0,
-            pointer: 4096, // alignment
+            pointer: 0, // could be 4096 for alignment?
             size: 0,
         }
     }
