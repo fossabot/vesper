@@ -1,7 +1,7 @@
-use core::fmt::Write;
+//use core::fmt::Write;
 use platform::display::{Display, PixelOrder, Size2d, CHARSIZE_X, CHARSIZE_Y};
 use platform::mailbox::{self, channel, tag, GpuFb, Mailbox, response::VAL_LEN_FLAG};
-use platform::uart::MiniUart;
+//use platform::uart::MiniUart;
 
 pub struct VC;
 
@@ -13,14 +13,14 @@ pub enum VcError {
 
 impl VC {
     pub fn init_fb(size: Size2d) -> Result<Display, VcError> {
-        let mut uart = MiniUart::new();
-        uart.init();
+//        let mut uart = MiniUart::new();
+//        uart.init();
 
         let mut fb_init = GpuFb::new(size, 32);
 
         fb_init.call().map_err(VcError::MboxError)?;
 
-        write!(uart, "\n{}\n", fb_init);
+//        write!(uart, "\n{}\n", fb_init);
 
         // mailbox
         let mut mbox = Mailbox::new();
@@ -47,12 +47,12 @@ impl VC {
         mbox.call(channel::PropertyTagsArmToVc)
             .map_err(VcError::MboxError)?;
 
-        write!(uart, "\n######\nVC::mailbox returned\n\n{}\n", mbox);
+//        write!(uart, "\n######\nVC::mailbox returned\n\n{}\n", mbox);
 
         if (mbox.buffer[4] & VAL_LEN_FLAG) == 0
             || (mbox.buffer[9] & VAL_LEN_FLAG) == 0
         {
-            write!(uart, "\n######\nVC::returning FormatError\n");
+//            write!(uart, "\n######\nVC::returning FormatError\n");
             return Err(VcError::FormatError);
         }
 
@@ -64,16 +64,16 @@ impl VC {
             0 => PixelOrder::BGR,
             1 => PixelOrder::RGB,
             _ => {
-                write!(
-                    uart,
-                    "\n######\nVC::returning PixelOrderInvalid - {:x}\n",
-                    mbox.buffer[10]
-                );
+//                write!(
+//                    uart,
+//                    "\n######\nVC::returning PixelOrderInvalid - {:x}\n",
+//                    mbox.buffer[10]
+//                );
                 return Err(VcError::PixelOrderInvalid);
             }
         };
 
-        write!(uart, "\n######\nVC::returning Display\n");
+//        write!(uart, "\n######\nVC::returning Display\n");
 
         Ok(Display::new(
             fb_init.pointer,

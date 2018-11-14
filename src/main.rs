@@ -3,7 +3,6 @@
 #![feature(asm)]
 #![feature(const_fn)]
 #![feature(lang_items)]
-// #![feature(repr_align)]
 #![feature(ptr_internals)] // temp
 #![feature(core_intrinsics)]
 #![doc(html_root_url = "https://docs.metta.systems/")]
@@ -29,8 +28,9 @@ pub mod arch;
 pub use arch::*;
 pub mod platform;
 
-use core::fmt::Write;
-use platform::{display::Size2d, uart::MiniUart, vc::VC};
+//use core::fmt::Write;
+use platform::{display::Size2d, vc::VC};
+//use platform::uart::MiniUart;
 
 // User-facing kernel parts - syscalls and capability invocations.
 // pub mod vesper; -- no mod exported, because available through syscall interface
@@ -55,31 +55,31 @@ impl RGB {
 // Kernel entry point
 // arch crate is responsible for calling this
 pub fn kmain() -> ! {
-    let mut uart = MiniUart::new();
-    uart.init();
-    uart.puts("\n\nHey there, mini uart talking!\n\n");
+//    let mut uart = MiniUart::new();
+//    uart.init();
+//    uart.puts("\n\nHey there, mini uart talking!\n\n");
 
     if let Ok(mut display) = VC::init_fb(Size2d { x: 800, y: 600 }) {
-        write!(uart, "{}\n", display);
+//        write!(uart, "{}\n", display);
 
-        write!(uart, "Drawing rect\n\n");
+//        write!(uart, "Drawing rect\n\n");
         display.rect(10, 10, 250, 250, RGB::rgb(32, 96, 64).0);
-        uart.puts("Drawing Hello text\n\n");
+//        uart.puts("Drawing Hello text\n\n");
         display.draw_text(50, 50, "Hello there!", RGB::rgb(128, 192, 255).0);
         //        display.draw_text(50, 150, core::fmt("{}", display), RGB::rgb(255,0,0).0);
 
-        uart.puts("Drawing RED\n\n");
+//        uart.puts("Drawing RED\n\n");
         display.draw_text(150, 50, "RED", RGB::rgb(255, 0, 0).0);
-        uart.puts("Drawing GREEN\n\n");
+//        uart.puts("Drawing GREEN\n\n");
         display.draw_text(160, 60, "GREEN", RGB::rgb(0, 255, 0).0);
-        uart.puts("Drawing BLUE\n\n");
+//        uart.puts("Drawing BLUE\n\n");
         display.draw_text(170, 70, "BLUE", RGB::rgb(0, 0, 255).0);
     }
 
-    uart.puts("\n######\nBye, going to sleep now\n######\n\n");
+//    uart.puts("\n######\nBye, going to sleep now\n######\n\n");
 
-    loop {
-        uart.send(uart.getc());
-    }
-    //    endless_sleep();
+//    loop {
+//        uart.send(uart.getc());
+//    }
+    endless_sleep();
 }
