@@ -13,6 +13,7 @@
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 use architecture_not_supported_sorry;
 
+use core::fmt;
 // use core::intrinsics::abort;
 
 #[macro_use]
@@ -26,6 +27,8 @@ use core::panic::PanicInfo;
 #[macro_use]
 pub mod arch;
 pub use arch::*;
+pub mod kernel;
+pub use kernel::*;
 pub mod platform;
 
 use core::fmt::Write;
